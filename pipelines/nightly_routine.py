@@ -60,13 +60,14 @@ async def run_nightly_routine_pipeline():
             for conflict in climate_conflicts:
                 save_conflict(conflict)
 
-        # Step 5: Generate routine
+        # Step 5: Generate routine (pass conflicts so Gemini avoids those products)
         log_pipeline_event(pipeline_name, "Generating routine via Gemini...")
-        routine = await generate_routine(products, weather, profile)
+        routine = await generate_routine(products, weather, profile, climate_conflicts=climate_conflicts)
 
         # Step 6: Save routine
         # Use tomorrow's date as the document ID → idempotent
-        cairo_tz = timezone(timedelta(hours=2))  # Cairo is UTC+2
+        from zoneinfo import ZoneInfo
+        cairo_tz = ZoneInfo("Africa/Cairo")
         tomorrow = datetime.now(cairo_tz) + timedelta(days=1)
         date_str = tomorrow.strftime("%Y-%m-%d")
 

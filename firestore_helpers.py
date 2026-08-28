@@ -35,6 +35,42 @@ def get_all_products() -> list[dict]:
     return products
 
 
+def delete_product(product_id: str):
+    """
+    Delete a product from the user's shelf.
+    Also clears any conflicts that involved this product.
+    """
+    get_user_ref().collection("products").document(product_id).delete()
+    clear_conflicts_for_product(product_id)
+
+
+def clear_conflicts_for_product(product_id: str):
+    """Remove all conflicts that involve a specific product."""
+    conflicts_ref = get_user_ref().collection("conflicts")
+
+    # Check product_a_id
+    docs_a = conflicts_ref.where("product_a_id", "==", product_id).stream()
+    for doc in docs_a:
+        doc.reference.delete()
+
+    # Check product_b_id
+    docs_b = conflicts_ref.where("product_b_id", "==", product_id).stream()
+    for doc in docs_b:
+        doc.reference.delete()
+
+    # Also check single-product conflicts (climate conflicts)
+    docs_single = conflicts_ref.where("product_id", "==", product_id).stream()
+    for doc in docs_single:
+        doc.reference.delete()
+
+
+def clear_all_conflicts():
+    """Clear all conflicts. Used before a full shelf re-analysis."""
+    docs = get_user_ref().collection("conflicts").stream()
+    for doc in docs:
+        doc.reference.delete()
+
+
 # ── Routines ──
 
 def save_routine(date_str: str, routine_data: dict):

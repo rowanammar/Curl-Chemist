@@ -86,7 +86,7 @@ async def fetch_cairo_weather() -> dict:
     return weather
 
 
-async def generate_routine(products: list[dict], weather: dict, profile: dict) -> dict:
+async def generate_routine(products: list[dict], weather: dict, profile: dict, climate_conflicts: list[dict] = None) -> dict:
     """
     Generate a personalized daily routine using Gemini.
 
@@ -94,6 +94,7 @@ async def generate_routine(products: list[dict], weather: dict, profile: dict) -
         products: user's product shelf with ingredients
         weather: tomorrow's weather data
         profile: user's hair profile (type, porosity, goals)
+        climate_conflicts: optional list of weather-dependent conflicts to avoid
 
     Returns:
         dict with steps, weather_summary, and climate_notes
@@ -114,6 +115,16 @@ async def generate_routine(products: list[dict], weather: dict, profile: dict) -
     if adjustments:
         adjustments_text = "\nLEARNED PREFERENCES (Follow these above all else!):\n" + "\n".join(f"- {adj}" for adj in adjustments)
 
+    # Build climate conflict warnings
+    conflict_warnings = ""
+    if climate_conflicts:
+        warnings = []
+        for c in climate_conflicts:
+            warnings.append(
+                f"- AVOID {c.get('ingredient', 'unknown')} in {c.get('product_name', 'unknown')}: {c.get('explanation', '')}"
+            )
+        conflict_warnings = "\n\nCLIMATE CONFLICTS (DO NOT recommend these products/ingredients today!):\n" + "\n".join(warnings)
+
     prompt = f"""Generate a hair care routine for tomorrow based on this data.
 
 WEATHER TOMORROW:
@@ -128,7 +139,7 @@ USER'S HAIR PROFILE:
 - Hair type: {profile.get('hair_type', 'wavy')}
 - Porosity: {profile.get('porosity', 'medium')}
 - Thickness: {profile.get('thickness', 'medium')}
-- Current goals: {profile.get('goals', ['reduce frizz', 'improve definition'])}{adjustments_text}
+- Current goals: {profile.get('goals', ['reduce frizz', 'improve definition'])}{adjustments_text}{conflict_warnings}
 
 
 AVAILABLE PRODUCTS:

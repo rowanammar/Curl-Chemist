@@ -3,31 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curl Chemist</title>
+    <title>Curl Chemist — AI Hair Care</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
-        <h1>Curl Chemist</h1>
-        <p>Your AI-Powered Hair Routine</p>
+        <h1>🧪 Curl Chemist</h1>
+        <p class="subtitle">AI-Powered Hair Care for Cairo Curls</p>
     </header>
-    
-    <main id="app">
-        <section id="products-section">
-            <h2>Your Shelf</h2>
-            <div id="products-list">Loading products...</div>
-            <input type="file" id="product-upload" accept="image/*">
-            <button onclick="uploadProduct()">Scan New Product</button>
+
+    <main>
+        <!-- ═══ ADD PRODUCT SECTION ═══ -->
+        <section id="add-product-section" class="card full-width">
+            <h2>Add a Product to Your Shelf</h2>
+
+            <!-- Input method tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="photo" onclick="switchTab('photo')">📸 Scan Photo</button>
+                <button class="tab" data-tab="name" onclick="switchTab('name')">🔍 Search by Name</button>
+                <button class="tab" data-tab="manual" onclick="switchTab('manual')">✏️ Enter Ingredients</button>
+            </div>
+
+            <!-- Photo upload -->
+            <div class="tab-content active" id="tab-photo">
+                <p class="hint">Take a photo of the product's ingredient label</p>
+                <input type="file" id="photo-input" accept="image/*" capture="environment">
+                <button class="btn primary" onclick="scanPhoto()" id="btn-scan-photo">Scan Label</button>
+            </div>
+
+            <!-- Name lookup -->
+            <div class="tab-content" id="tab-name">
+                <p class="hint">Type the full product name — AI will look up the ingredients</p>
+                <input type="text" id="name-input" placeholder="e.g. Shea Moisture Curl Enhancing Smoothie">
+                <button class="btn primary" onclick="scanByName()" id="btn-scan-name">Look Up</button>
+                <p class="disclaimer">⚠️ Ingredients from AI memory — always verify against your actual label</p>
+            </div>
+
+            <!-- Manual entry -->
+            <div class="tab-content" id="tab-manual">
+                <p class="hint">Paste or type the ingredient list from the label</p>
+                <input type="text" id="manual-product-name" placeholder="Product name">
+                <textarea id="manual-ingredients" rows="4" placeholder="Water, Cetearyl Alcohol, Glycerin, Behentrimonium Methosulfate..."></textarea>
+                <button class="btn primary" onclick="scanManual()" id="btn-scan-manual">Classify Ingredients</button>
+            </div>
+
+            <!-- Scan results (hidden until a scan completes) -->
+            <div id="scan-results" class="hidden">
+                <h3>Scan Results</h3>
+
+                <!-- Hair product warning -->
+                <div id="not-hair-warning" class="alert warning hidden">
+                    <strong>⚠️ This doesn't look like a hair product!</strong>
+                    <p>Detected category: <span id="detected-category"></span></p>
+                    <p>You can still add it if you use it for your hair.</p>
+                </div>
+
+                <div class="scan-meta">
+                    <span><strong>Product:</strong> <span id="result-name"></span></span>
+                    <span><strong>Brand:</strong> <span id="result-brand"></span></span>
+                    <span><strong>Type:</strong> <span id="result-type"></span></span>
+                </div>
+
+                <div id="result-ingredients"></div>
+
+                <div class="actions">
+                    <button class="btn primary" onclick="confirmProduct()">✅ Add to Shelf</button>
+                    <button class="btn secondary" onclick="cancelScan()">✖ Cancel</button>
+                </div>
+            </div>
+
+            <!-- Loading spinner -->
+            <div id="scan-loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Analyzing with Gemini AI...</p>
+            </div>
         </section>
-        
-        <section id="routine-section">
-            <h2>Tomorrow's Routine</h2>
-            <div id="routine-details">Loading routine...</div>
-        </section>
-        
-        <section id="conflicts-section">
-            <h2>Active Conflicts</h2>
-            <div id="conflicts-list">Loading conflicts...</div>
+
+        <!-- ═══ TWO-COLUMN LAYOUT ═══ -->
+        <div class="grid-2">
+            <!-- SHELF -->
+            <section id="products-section" class="card">
+                <h2>Your Shelf <span class="badge" id="product-count">0</span></h2>
+                <div id="products-list"><p class="empty">No products yet. Scan one above!</p></div>
+            </section>
+
+            <!-- ROUTINE -->
+            <section id="routine-section" class="card">
+                <h2>Tomorrow's Routine</h2>
+                <div id="routine-details"><p class="empty">No routine generated yet.</p></div>
+                <button class="btn secondary small" onclick="triggerNightly()">🔄 Generate Now</button>
+            </section>
+        </div>
+
+        <div class="grid-2">
+            <!-- CONFLICTS -->
+            <section id="conflicts-section" class="card">
+                <h2>Active Conflicts <span class="badge danger" id="conflict-count">0</span></h2>
+                <div id="conflicts-list"><p class="empty">No conflicts detected.</p></div>
+            </section>
+
+            <!-- WASH DAY -->
+            <section id="washday-section" class="card">
+                <h2>📷 Log Wash Day</h2>
+                <p class="hint">Upload a hair selfie to track your progress</p>
+                <input type="file" id="selfie-input" accept="image/*" capture="user">
+                <textarea id="wash-notes" rows="2" placeholder="Notes (optional): products used, technique, etc."></textarea>
+                <button class="btn primary" onclick="logWashDay()" id="btn-wash">Analyze Hair</button>
+                <div id="wash-result" class="hidden"></div>
+                <div id="wash-loading" class="hidden">
+                    <div class="spinner"></div>
+                    <p>Analyzing your hair...</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- PIPELINE LOG -->
+        <section id="logs-section" class="card full-width">
+            <h2>Pipeline Activity Log</h2>
+            <div id="logs-list"><p class="empty">No activity yet.</p></div>
         </section>
     </main>
 
