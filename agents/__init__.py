@@ -1,0 +1,1 @@
+"""Curl Chemist Agent Definitions."""

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curl Chemist</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Curl Chemist</h1>
+        <p>Your AI-Powered Hair Routine</p>
+    </header>
+    
+    <main id="app">
+        <section id="products-section">
+            <h2>Your Shelf</h2>
+            <div id="products-list">Loading products...</div>
+            <input type="file" id="product-upload" accept="image/*">
+            <button onclick="uploadProduct()">Scan New Product</button>
+        </section>
+        
+        <section id="routine-section">
+            <h2>Tomorrow's Routine</h2>
+            <div id="routine-details">Loading routine...</div>
+        </section>
+        
+        <section id="conflicts-section">
+            <h2>Active Conflicts</h2>
+            <div id="conflicts-list">Loading conflicts...</div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
