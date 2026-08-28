@@ -3,129 +3,343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curl Chemist — AI Hair Care</title>
+    <title>Curl Chemist — Your Hair Care Lab</title>
+    <meta name="description" content="Curl Chemist analyzes your hair care products, detects ingredient conflicts, and builds personalized routines for curly hair.">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <h1>🧪 Curl Chemist</h1>
-        <p class="subtitle">AI-Powered Hair Care for Cairo Curls</p>
-    </header>
 
-    <main>
-        <!-- ═══ ADD PRODUCT SECTION ═══ -->
-        <section id="add-product-section" class="card full-width">
-            <h2>Add a Product to Your Shelf</h2>
+<!-- ═══ Mobile Header ═══ -->
+<div class="mobile-header" id="mobile-header">
+    <h1>Curl Chemist</h1>
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Open navigation">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-            <!-- Input method tabs -->
-            <div class="tabs">
-                <button class="tab active" data-tab="photo" onclick="switchTab('photo')">📸 Scan Photo</button>
-                <button class="tab" data-tab="name" onclick="switchTab('name')">🔍 Search by Name</button>
-                <button class="tab" data-tab="manual" onclick="switchTab('manual')">✏️ Enter Ingredients</button>
-            </div>
+<div class="app-layout">
 
-            <!-- Photo upload -->
-            <div class="tab-content active" id="tab-photo">
-                <p class="hint">Take a photo of the product's ingredient label</p>
-                <input type="file" id="photo-input" accept="image/*" capture="environment">
-                <button class="btn primary" onclick="scanPhoto()" id="btn-scan-photo">Scan Label</button>
-            </div>
-
-            <!-- Name lookup -->
-            <div class="tab-content" id="tab-name">
-                <p class="hint">Type the full product name — AI will look up the ingredients</p>
-                <input type="text" id="name-input" placeholder="e.g. Shea Moisture Curl Enhancing Smoothie">
-                <button class="btn primary" onclick="scanByName()" id="btn-scan-name">Look Up</button>
-                <p class="disclaimer">⚠️ Ingredients from AI memory — always verify against your actual label</p>
-            </div>
-
-            <!-- Manual entry -->
-            <div class="tab-content" id="tab-manual">
-                <p class="hint">Paste or type the ingredient list from the label</p>
-                <input type="text" id="manual-product-name" placeholder="Product name">
-                <textarea id="manual-ingredients" rows="4" placeholder="Water, Cetearyl Alcohol, Glycerin, Behentrimonium Methosulfate..."></textarea>
-                <button class="btn primary" onclick="scanManual()" id="btn-scan-manual">Classify Ingredients</button>
-            </div>
-
-            <!-- Scan results (hidden until a scan completes) -->
-            <div id="scan-results" class="hidden">
-                <h3>Scan Results</h3>
-
-                <!-- Hair product warning -->
-                <div id="not-hair-warning" class="alert warning hidden">
-                    <strong>⚠️ This doesn't look like a hair product!</strong>
-                    <p>Detected category: <span id="detected-category"></span></p>
-                    <p>You can still add it if you use it for your hair.</p>
-                </div>
-
-                <div class="scan-meta">
-                    <span><strong>Product:</strong> <span id="result-name"></span></span>
-                    <span><strong>Brand:</strong> <span id="result-brand"></span></span>
-                    <span><strong>Type:</strong> <span id="result-type"></span></span>
-                </div>
-
-                <div id="result-ingredients"></div>
-
-                <div class="actions">
-                    <button class="btn primary" onclick="confirmProduct()">✅ Add to Shelf</button>
-                    <button class="btn secondary" onclick="cancelScan()">✖ Cancel</button>
+    <!-- ═══ Sidebar ═══ -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-inner">
+                <img src="/static/logo.jpg" alt="" class="sidebar-logo" width="40" height="40">
+                <div>
+                    <h1>Curl Chemist</h1>
+                    <p>Your Hair Care Lab</p>
                 </div>
             </div>
-
-            <!-- Loading spinner -->
-            <div id="scan-loading" class="hidden">
-                <div class="spinner"></div>
-                <p>Analyzing with Gemini AI...</p>
-            </div>
-        </section>
-
-        <!-- ═══ TWO-COLUMN LAYOUT ═══ -->
-        <div class="grid-2">
-            <!-- SHELF -->
-            <section id="products-section" class="card">
-                <h2>Your Shelf <span class="badge" id="product-count">0</span></h2>
-                <div id="products-list"><p class="empty">No products yet. Scan one above!</p></div>
-            </section>
-
-            <!-- ROUTINE -->
-            <section id="routine-section" class="card">
-                <h2>Tomorrow's Routine</h2>
-                <div id="routine-details"><p class="empty">No routine generated yet.</p></div>
-                <button class="btn secondary small" onclick="triggerNightly()">🔄 Generate Now</button>
-            </section>
         </div>
 
-        <div class="grid-2">
-            <!-- CONFLICTS -->
-            <section id="conflicts-section" class="card">
-                <h2>Active Conflicts <span class="badge danger" id="conflict-count">0</span></h2>
-                <div id="conflicts-list"><p class="empty">No conflicts detected.</p></div>
-            </section>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section-label">Dashboard</div>
 
-            <!-- WASH DAY -->
-            <section id="washday-section" class="card">
-                <h2>📷 Log Wash Day</h2>
-                <p class="hint">Upload a hair selfie to track your progress</p>
-                <input type="file" id="selfie-input" accept="image/*" capture="user">
-                <textarea id="wash-notes" rows="2" placeholder="Notes (optional): products used, technique, etc."></textarea>
-                <button class="btn primary" onclick="logWashDay()" id="btn-wash">Analyze Hair</button>
-                <div id="wash-result" class="hidden"></div>
-                <div id="wash-loading" class="hidden">
-                    <div class="spinner"></div>
-                    <p>Analyzing your hair...</p>
+            <a href="#shelf" class="nav-link active" data-view="shelf" id="nav-shelf">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/></svg>
+                <span>My Shelf</span>
+                <span class="count-badge" id="nav-product-count" style="margin-left:auto">0</span>
+            </a>
+
+            <a href="#scan" class="nav-link" data-view="scan" id="nav-scan">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <span>Add Product</span>
+            </a>
+
+            <a href="#routine" class="nav-link" data-view="routine" id="nav-routine">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
+                <span>Routine</span>
+            </a>
+
+            <a href="#conflicts" class="nav-link" data-view="conflicts" id="nav-conflicts">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Conflicts</span>
+                <span class="nav-badge hidden" id="nav-conflict-badge">0</span>
+            </a>
+
+            <div class="sidebar-section-label">Tracking</div>
+
+            <a href="#washday" class="nav-link" data-view="washday" id="nav-washday">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>Wash Day</span>
+            </a>
+
+            <a href="#activity" class="nav-link" data-view="activity" id="nav-activity">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>Activity</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span>Curl Chemist v1.0</span>
+        </div>
+    </aside>
+
+    <!-- ═══ Main Content ═══ -->
+    <main class="main-content">
+        <div class="main-content-inner">
+
+            <!-- ══════════════════════════════════════
+                 VIEW: Shelf
+                 ══════════════════════════════════════ -->
+            <section class="view active" id="view-shelf">
+                <div class="view-header">
+                    <h2>My Shelf</h2>
+                    <p>Your current hair care products and their ingredients.</p>
+                </div>
+                <div id="products-container">
+                    <div class="empty-state" id="shelf-empty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/></svg>
+                        <div class="empty-state-title">Your shelf is empty</div>
+                        <p class="empty-state-text">Add your first product to start analyzing ingredients and detecting conflicts.</p>
+                        <div class="btn-group" style="justify-content:center; margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="navigateTo('scan')">Add a Product</button>
+                        </div>
+                    </div>
+                    <div class="product-grid" id="products-list"></div>
                 </div>
             </section>
-        </div>
 
-        <!-- PIPELINE LOG -->
-        <section id="logs-section" class="card full-width">
-            <h2>Pipeline Activity Log</h2>
-            <div id="logs-list"><p class="empty">No activity yet.</p></div>
-        </section>
+
+            <!-- ══════════════════════════════════════
+                 VIEW: Scan / Add Product
+                 ══════════════════════════════════════ -->
+            <section class="view" id="view-scan">
+                <div class="view-header">
+                    <h2>Add a Product</h2>
+                    <p>Scan a label, search by name, or enter ingredients manually.</p>
+                </div>
+
+                <div class="card" id="scan-card">
+                    <!-- Tabs -->
+                    <div class="tabs" role="tablist">
+                        <button class="tab active" data-tab="photo" role="tab" aria-selected="true" id="tab-btn-photo" onclick="switchTab('photo')">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Scan Photo
+                        </button>
+                        <button class="tab" data-tab="name" role="tab" aria-selected="false" id="tab-btn-name" onclick="switchTab('name')">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            Search by Name
+                        </button>
+                        <button class="tab" data-tab="manual" role="tab" aria-selected="false" id="tab-btn-manual" onclick="switchTab('manual')">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Enter Ingredients
+                        </button>
+                    </div>
+
+                    <!-- Tab: Photo Upload -->
+                    <div class="tab-content active" id="tab-photo" role="tabpanel">
+                        <div class="upload-zone" id="photo-drop-zone">
+                            <input type="file" id="photo-input" accept="image/*" capture="environment" aria-label="Upload product photo">
+                            <svg class="upload-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <div class="upload-zone-text"><strong>Click to upload</strong> or drag and drop</div>
+                            <div class="upload-zone-hint">JPG, PNG up to 10 MB</div>
+                        </div>
+                        <div class="upload-preview" id="photo-preview">
+                            <img id="photo-preview-img" src="" alt="Product photo preview">
+                            <div class="upload-preview-name" id="photo-preview-name"></div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="scanPhoto()" id="btn-scan-photo">Analyze Label</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Name Lookup -->
+                    <div class="tab-content" id="tab-name" role="tabpanel">
+                        <div class="form-group">
+                            <label class="form-label" for="name-input">Product name</label>
+                            <input type="text" class="form-input" id="name-input" placeholder="e.g. Shea Moisture Curl Enhancing Smoothie">
+                        </div>
+                        <p class="form-hint warning">Ingredients recalled from memory — always verify against your actual product label.</p>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="scanByName()" id="btn-scan-name">Look Up Ingredients</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Manual Entry -->
+                    <div class="tab-content" id="tab-manual" role="tabpanel">
+                        <div class="form-group">
+                            <label class="form-label" for="manual-product-name">Product name</label>
+                            <input type="text" class="form-input" id="manual-product-name" placeholder="What's the product called?">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="manual-ingredients">Ingredient list</label>
+                            <textarea class="form-input" id="manual-ingredients" rows="5" placeholder="Water, Cetearyl Alcohol, Glycerin, Behentrimonium Methosulfate..."></textarea>
+                            <p class="form-hint">Paste the ingredient list from the label or product website.</p>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="scanManual()" id="btn-scan-manual">Classify Ingredients</button>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="loading-state hidden" id="scan-loading">
+                        <div class="spinner"></div>
+                        <span class="loading-text">Analyzing ingredients&hellip;</span>
+                    </div>
+
+                    <!-- Scan Results (review before saving) -->
+                    <div class="hidden" id="scan-results">
+                        <!-- Not-hair-product warning -->
+                        <div class="alert alert-warning hidden" id="not-hair-warning">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <div>
+                                <strong>This doesn't look like a hair product.</strong>
+                                <div>Detected: <span id="detected-category"></span>. You can still add it if you use it for your hair.</div>
+                            </div>
+                        </div>
+
+                        <div class="card-header">
+                            <div class="card-title">Review Scan Results</div>
+                        </div>
+
+                        <div class="scan-meta-grid">
+                            <div class="scan-meta-item">
+                                <div class="scan-meta-label">Product</div>
+                                <div class="scan-meta-value" id="result-name">—</div>
+                            </div>
+                            <div class="scan-meta-item">
+                                <div class="scan-meta-label">Brand</div>
+                                <div class="scan-meta-value" id="result-brand">—</div>
+                            </div>
+                            <div class="scan-meta-item">
+                                <div class="scan-meta-label">Type</div>
+                                <div class="scan-meta-value" id="result-type">—</div>
+                            </div>
+                        </div>
+
+                        <div id="result-ingredients"></div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="confirmProduct()" id="btn-confirm">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Add to Shelf
+                            </button>
+                            <button class="btn btn-secondary" onclick="cancelScan()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ══════════════════════════════════════
+                 VIEW: Routine
+                 ══════════════════════════════════════ -->
+            <section class="view" id="view-routine">
+                <div class="view-header">
+                    <h2>Tomorrow's Routine</h2>
+                    <p>Your personalized hair care routine based on your shelf and local weather.</p>
+                </div>
+                <div id="routine-container">
+                    <div class="empty-state" id="routine-empty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
+                        <div class="empty-state-title">No routine yet</div>
+                        <p class="empty-state-text">Add products to your shelf, then generate a routine.</p>
+                    </div>
+                    <div id="routine-content" class="hidden"></div>
+                </div>
+                <div class="mt-5">
+                    <button class="btn btn-secondary" onclick="triggerNightly()" id="btn-generate-routine">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Generate Now
+                    </button>
+                </div>
+            </section>
+
+
+            <!-- ══════════════════════════════════════
+                 VIEW: Conflicts
+                 ══════════════════════════════════════ -->
+            <section class="view" id="view-conflicts">
+                <div class="view-header">
+                    <h2>Ingredient Conflicts</h2>
+                    <p>Products that shouldn't be used together, or conditions to watch for.</p>
+                </div>
+                <div id="conflicts-container">
+                    <div class="empty-state" id="conflicts-empty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <div class="empty-state-title">All clear</div>
+                        <p class="empty-state-text">No ingredient conflicts detected. Your products are compatible.</p>
+                    </div>
+                    <div class="conflict-list" id="conflicts-list"></div>
+                </div>
+            </section>
+
+
+            <!-- ══════════════════════════════════════
+                 VIEW: Wash Day
+                 ══════════════════════════════════════ -->
+            <section class="view" id="view-washday">
+                <div class="view-header">
+                    <h2>Wash Day</h2>
+                    <p>Log a wash day selfie to track your hair health over time.</p>
+                </div>
+
+                <div class="card">
+                    <div class="upload-zone" id="selfie-drop-zone">
+                        <input type="file" id="selfie-input" accept="image/*" capture="user" aria-label="Upload hair selfie">
+                        <svg class="upload-zone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <div class="upload-zone-text"><strong>Upload a hair selfie</strong> or drag and drop</div>
+                        <div class="upload-zone-hint">Take a well-lit photo of your hair</div>
+                    </div>
+                    <div class="upload-preview" id="selfie-preview">
+                        <img id="selfie-preview-img" src="" alt="Hair selfie preview">
+                        <div class="upload-preview-name" id="selfie-preview-name"></div>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <label class="form-label" for="wash-notes">Notes (optional)</label>
+                        <textarea class="form-input" id="wash-notes" rows="3" placeholder="Products used, technique, anything you want to remember..."></textarea>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="logWashDay()" id="btn-wash">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Analyze Hair
+                        </button>
+                    </div>
+
+                    <!-- Wash Loading -->
+                    <div class="loading-state hidden" id="wash-loading">
+                        <div class="spinner"></div>
+                        <span class="loading-text">Analyzing your hair&hellip;</span>
+                    </div>
+
+                    <!-- Wash Results -->
+                    <div class="wash-results hidden" id="wash-result"></div>
+                </div>
+            </section>
+
+
+            <!-- ══════════════════════════════════════
+                 VIEW: Activity
+                 ══════════════════════════════════════ -->
+            <section class="view" id="view-activity">
+                <div class="view-header">
+                    <h2>Activity</h2>
+                    <p>Pipeline runs and system events.</p>
+                </div>
+                <div id="activity-container">
+                    <div class="empty-state" id="activity-empty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <div class="empty-state-title">No activity yet</div>
+                        <p class="empty-state-text">Pipeline runs and system events will appear here.</p>
+                    </div>
+                    <div id="logs-list"></div>
+                </div>
+            </section>
+
+        </div><!-- /.main-content-inner -->
     </main>
 
-    <script src="/static/app.js"></script>
+</div><!-- /.app-layout -->
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script src="/static/app.js"></script>
 </body>
 </html>
