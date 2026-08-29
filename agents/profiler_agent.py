@@ -11,13 +11,9 @@ WHAT THIS AGENT DOES:
 
 from google import genai
 from google.adk import Agent
-from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION
+from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
-client = genai.Client(
-    vertexai=True,
-    project=GCP_PROJECT_ID,
-    location=GCP_REGION,
-)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
 
 PROFILER_INSTRUCTION = """You are the Profiler Agent of Curl Chemist.
 
@@ -51,7 +47,8 @@ async def analyze_hair_photo(image_uri: str) -> dict:
         contents=[
             types.Part.from_uri(file_uri=image_uri, mime_type="image/jpeg"),
             types.Part.from_text(
-                "Analyze this hair photo. Score the following on a scale of 1-10: "
+                text="I need you to act as a curly hair expert profiler. "
+                "Score the following on a scale of 1-10: "
                 "frizz_level (1=none, 10=extreme), curl_definition (1=none, 10=perfect), "
                 "shine (1=dull, 10=healthy), damage_visible (1=none, 10=severe). "
                 "Also provide brief observations about the hair condition. "

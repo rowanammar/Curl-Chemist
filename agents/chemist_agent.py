@@ -18,19 +18,16 @@ import json
 from pathlib import Path
 # pyrefly: ignore [missing-import]
 from google import genai
+from google.genai import types
 from google.adk import Agent
-from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION
+from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 # Load conflict rules once at startup
 RULES_PATH = Path(__file__).parent.parent / "data" / "conflict_rules.json"
 with open(RULES_PATH) as f:
     CONFLICT_RULES = json.load(f)
 
-client = genai.Client(
-    vertexai=True,
-    project=GCP_PROJECT_ID,
-    location=GCP_REGION,
-)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
 
 CHEMIST_INSTRUCTION = """You are the Chemist Agent of Curl Chemist.
 
@@ -44,85 +41,56 @@ IMPORTANT RULES:
 """
 
 
-def _ingredient_matches_category(ingredient: dict, trigger: dict) -> str | None:
+async def check_product_conflicts(products: list[dict]) -> list[dict]:
     """
-    Check if an ingredient matches a conflict trigger.
-    Returns the matched ingredient name or None.
+    Passes the entire shelf + the conflict rule concepts to Gemini to find holistic, non-hallucinated conflicts.
     """
-    ing_category = ingredient.get("category", "").lower()
-    ing_name = ingredient.get("inci", ingredient.get("name", "")).lower()
+    if len(products) < 2:
+        return []
 
-    # Check by category match
-    if ing_category == trigger["category"].lower():
-        return ingredient["name"]
+    # Simplify product list to text for prompt
+    shelf_text = "USER'S SHELF:\n"
+    for p in products:
+        shelf_text += f"- Product ID: {p['id']}, Name: {p.get('product_name', 'Unknown')}\n"
+        shelf_text += f"  Ingredients: {', '.join([i.get('inci', i.get('name', '')) for i in p.get('ingredients', [])])}\n\n"
 
-    # Check by specific ingredient name match
-    for example in trigger.get("examples", []):
-        if example.lower() in ing_name:
-            return ingredient["name"]
+    # Load rules text for context
+    rules_text = json.dumps(CONFLICT_RULES, indent=2)
 
-    return None
+    prompt = f"""You are a Master Cosmetic Chemist. Here is the user's product shelf, and a rulebook of scientifically proven conflict concepts (like Silicone Buildup, Protein Overload, etc).
 
+1. Find any instances where products on the shelf violate these known concepts.
+2. DO NOT invent new conflict concepts. You are strictly bound to the concepts in the rulebook.
+3. Apply common sense. For example, a CoWash cannot wash out heavy petroleum (flag as buildup). Trace Citric Acid is a pH adjuster, not a chemical peel (ignore).
 
-def check_product_conflicts(products: list[dict]) -> list[dict]:
-    """
-    Run N×N conflict analysis across all products.
+{shelf_text}
 
-    This is the core conflict detection engine. For every pair of products,
-    it checks every rule in the conflict database.
+RULEBOOK:
+{rules_text}
 
-    Args:
-        products: list of product dicts, each with an 'ingredients' list
+Return a JSON array of conflict objects. Each object must have exactly these keys:
+- "product_a_id": string (the ID of the first conflicting product)
+- "product_a_name": string (the name of the first conflicting product)
+- "product_b_id": string (the ID of the second conflicting product)
+- "product_b_name": string (the name of the second conflicting product)
+- "severity": string (either "critical", "warning", or "info")
+- "explanation": string (A personalized explanation mentioning specific ingredients)
+- "fix": string (Actionable advice to fix it)
+"""
 
-    Returns:
-        list of conflict dicts with product_a, product_b, severity, explanation, fix
-    """
-    conflicts = []
-
-    for i, product_a in enumerate(products):
-        for j, product_b in enumerate(products):
-            if j <= i:
-                continue  # Don't check a product against itself or duplicate pairs
-
-            for rule in CONFLICT_RULES:
-                # Skip rules that need conditions (handled separately)
-                if "condition" in rule and "trigger_b" not in rule:
-                    continue
-
-                if "trigger_b" not in rule:
-                    continue
-
-                # Check if product_a has trigger_a and product_b has trigger_b
-                for ing_a in product_a.get("ingredients", []):
-                    match_a = _ingredient_matches_category(ing_a, rule["trigger_a"])
-                    if not match_a:
-                        continue
-
-                    for ing_b in product_b.get("ingredients", []):
-                        match_b = _ingredient_matches_category(
-                            ing_b, rule["trigger_b"]
-                        )
-                        if not match_b:
-                            continue
-
-                        # Found a conflict!
-                        conflicts.append({
-                            "rule_id": rule["id"],
-                            "type": rule["type"],
-                            "severity": rule["severity"],
-                            "product_a_id": product_a["id"],
-                            "product_a_name": product_a.get("product_name", "Unknown"),
-                            "product_b_id": product_b["id"],
-                            "product_b_name": product_b.get("product_name", "Unknown"),
-                            "ingredient_a": match_a,
-                            "ingredient_b": match_b,
-                            "explanation": rule["explanation"]
-                                .replace("{a}", match_a)
-                                .replace("{b}", match_b),
-                            "fix": rule["fix"],
-                        })
-
-    return conflicts
+    try:
+        response = await client.aio.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1,
+            ),
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"Gemini holistic conflict detection failed: {e}")
+        return []
 
 
 def check_climate_conflicts(

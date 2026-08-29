@@ -2,15 +2,11 @@ import httpx
 from google import genai
 from google.adk import Agent
 from config import (
-    GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION,
+    GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY,
     CAIRO_LAT, CAIRO_LON, WEATHER_API_URL,
 )
 
-client = genai.Client(
-    vertexai=True,
-    project=GCP_PROJECT_ID,
-    location=GCP_REGION,
-)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
 
 CLIMATE_INSTRUCTION = """You are the Climate Agent of Curl Chemist.
 
@@ -162,7 +158,7 @@ Return a JSON object with:
 
     response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
-        contents=[types.Part.from_text(prompt)],
+        contents=[types.Part.from_text(text=prompt)],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
             temperature=0.3,

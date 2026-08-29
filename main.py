@@ -197,28 +197,24 @@ async def confirm_product(request: Request):
 
         # Run conflict analysis against entire shelf
         all_products = get_all_products()
-        conflicts = check_product_conflicts(all_products)
-
-        # Filter to only conflicts involving the new product
-        new_conflicts = [
-            c for c in conflicts
-            if c["product_a_id"] == product_id or c["product_b_id"] == product_id
-        ]
-
-        # Save new conflicts
+        conflicts = await check_product_conflicts(all_products)
+        
+        # Clear old conflicts and save the new holistic state
+        clear_all_conflicts()
+        
         critical_count = 0
-        for conflict in new_conflicts:
+        for conflict in conflicts:
             save_conflict(conflict)
-            if conflict["severity"] == "critical":
+            if conflict.get("severity") == "critical":
                 critical_count += 1
 
         return {
             "status": "success",
             "product_id": product_id,
             "product_name": product_data.get("product_name", "Unknown"),
-            "conflicts_found": len(new_conflicts),
+            "conflicts_found": len(conflicts),
             "critical_conflicts": critical_count,
-            "conflicts": new_conflicts,
+            "conflicts": conflicts,
         }
 
     except Exception as e:
@@ -236,11 +232,20 @@ async def confirm_product(request: Request):
 async def remove_product(product_id: str):
     """
     Delete a product from the shelf.
-    Also removes all conflicts that involved this product.
+    Re-evaluates conflicts for the remaining shelf.
     """
     try:
         delete_product(product_id)
-        return {"status": "success", "message": "Product removed from shelf"}
+        
+        # Re-evaluate the shelf
+        all_products = get_all_products()
+        conflicts = await check_product_conflicts(all_products)
+        
+        clear_all_conflicts()
+        for c in conflicts:
+            save_conflict(c)
+            
+        return {"status": "success", "message": "Product removed and shelf re-evaluated"}
     except Exception as e:
         return JSONResponse(
             {"status": "error", "message": f"Failed to delete product: {str(e)}"},
@@ -274,13 +279,13 @@ async def log_wash_day(file: UploadFile = File(...), notes: str = Form("")):
 
         # Analyze with profiler agent using inline data
         from google.genai import types
-        from config import GEMINI_MODEL
+        from config import GEMINI_MODEL, GCP_REGION, GEMINI_API_KEY
 
         from google import genai
-        prof_client = genai.Client(
+        prof_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(
             vertexai=True,
             project=GCP_PROJECT_ID,
-            location="europe-west1",
+            location=GCP_REGION,
         )
 
         response = await prof_client.aio.models.generate_content(
@@ -288,7 +293,7 @@ async def log_wash_day(file: UploadFile = File(...), notes: str = Form("")):
             contents=[
                 types.Part.from_bytes(data=content, mime_type=mime_type),
                 types.Part.from_text(
-                    "Analyze this hair photo. Score the following on a scale of 1-10: "
+                    text="Analyze this hair photo. Score the following on a scale of 1-10: "
                     "frizz_level (1=none, 10=extreme), curl_definition (1=none, 10=perfect), "
                     "shine (1=dull, 10=healthy), damage_visible (1=none, 10=severe). "
                     "Also provide brief observations about the hair condition. "

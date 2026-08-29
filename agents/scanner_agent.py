@@ -19,14 +19,10 @@ import base64
 from google import genai
 from google.genai import types
 from google.adk import Agent
-from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION
+from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 # Initialize the Gemini client via Vertex AI
-client = genai.Client(
-    vertexai=True,
-    project=GCP_PROJECT_ID,
-    location=GCP_REGION,
-)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
 
 SCANNER_INSTRUCTION = """You are the Scanner Agent of Curl Chemist.
 
@@ -86,7 +82,7 @@ async def scan_product_from_bytes(image_bytes: bytes, mime_type: str = "image/jp
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             types.Part.from_text(
-                "Extract all ingredients from this product label photo. "
+                text="Extract all ingredients from this product label photo. "
                 "Handle Arabic, English, and mixed-language text. "
                 "If uncertain about any ingredient, set needs_review to true.\n\n"
                 "IMPORTANT: Also determine if this is a hair/scalp care product "
@@ -121,7 +117,7 @@ async def scan_product_by_name(product_name: str) -> dict:
         model=GEMINI_MODEL,
         contents=[
             types.Part.from_text(
-                f"I need the full ingredient list for this hair care product: \"{product_name}\"\n\n"
+                text=f"I need the full ingredient list for this hair care product: \"{product_name}\"\n\n"
                 "Look up this product from your knowledge. If you know this product, "
                 "return its complete ingredient list. If you're not sure about the exact "
                 "formulation, return your best guess but mark ALL ingredients as needs_review: true.\n\n"
@@ -169,7 +165,7 @@ async def scan_product_from_text(product_name: str, ingredients_text: str) -> di
         model=GEMINI_MODEL,
         contents=[
             types.Part.from_text(
-                f"Product name: \"{product_name}\"\n\n"
+                text=f"Product name: \"{product_name}\"\n\n"
                 f"Here is the ingredient list the user provided:\n{ingredients_text}\n\n"
                 "Parse and classify each ingredient. The input may be comma-separated, "
                 "newline-separated, or in any format. Extract each individual ingredient.\n\n"
@@ -207,7 +203,7 @@ async def scan_product_label(image_uri: str) -> dict:
         contents=[
             types.Part.from_uri(file_uri=image_uri, mime_type="image/jpeg"),
             types.Part.from_text(
-                "Extract all ingredients from this product label photo. "
+                text="Extract all ingredients from this product label photo. "
                 "Handle Arabic, English, and mixed-language text. "
                 "If uncertain about any ingredient, set needs_review to true.\n\n"
                 "IMPORTANT: Also determine if this is a hair/scalp care product "

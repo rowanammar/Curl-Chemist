@@ -1,6 +1,6 @@
 from google import genai
 from google.genai import types
-from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION
+from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 from agents.profiler_agent import compute_trends
 from firestore_helpers import (
     get_recent_wash_history, save_weekly_report,
@@ -9,11 +9,7 @@ from firestore_helpers import (
 )
 from datetime import datetime, timezone
 
-client = genai.Client(
-    vertexai=True,
-    project=GCP_PROJECT_ID,
-    location=GCP_REGION,
-)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
 
 
 async def run_weekly_health_pipeline():
@@ -80,7 +76,7 @@ Return JSON with keys: "insights" (array of strings), "routine_adjustments" (arr
 
         response = await client.aio.models.generate_content(
             model=GEMINI_MODEL,
-            contents=[types.Part.from_text(prompt)],
+            contents=[types.Part.from_text(text=prompt)],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.3,

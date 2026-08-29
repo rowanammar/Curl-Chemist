@@ -47,14 +47,6 @@ document.querySelectorAll('.nav-link').forEach(link => {
   });
 });
 
-// Handle initial hash
-(function() {
-  const hash = window.location.hash.replace('#', '');
-  if (hash && document.getElementById(`view-${hash}`)) {
-    navigateTo(hash);
-  }
-})();
-
 
 // ═══════════════════════════════════════════
 // Mobile Sidebar
@@ -564,6 +556,13 @@ function renderProducts(products) {
   const list = document.getElementById('products-list');
   const empty = document.getElementById('shelf-empty');
 
+  // Preserve open states
+  const openProductIds = new Set();
+  document.querySelectorAll('.product-card-detail.open').forEach(el => {
+    const idMatch = el.id.match(/^product-detail-(.+)$/);
+    if (idMatch) openProductIds.add(idMatch[1]);
+  });
+
   if (!products || products.length === 0) {
     list.innerHTML = '';
     empty.style.display = '';
@@ -575,6 +574,8 @@ function renderProducts(products) {
   list.innerHTML = products.map(p => {
     const ingredientCount = (p.ingredients || []).length;
     const escapedName = (p.product_name || 'this product').replace(/'/g, "\\'");
+    
+    const isOpen = openProductIds.has(p.id);
 
     return `
       <div class="product-card">
@@ -589,12 +590,12 @@ function renderProducts(products) {
           </div>
           <div class="product-card-actions">
             <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', '${escapedName}')" aria-label="Remove ${escapedName}">Remove</button>
-            <button class="product-card-expand" id="product-expand-${p.id}" aria-label="Expand ingredients">
+            <button class="product-card-expand ${isOpen ? 'expanded' : ''}" id="product-expand-${p.id}" aria-label="Expand ingredients">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
           </div>
         </div>
-        <div class="product-card-detail" id="product-detail-${p.id}">
+        <div class="product-card-detail ${isOpen ? 'open' : ''}" id="product-detail-${p.id}">
           ${ingredientCount > 0 ? `
             <div class="ingredient-grid">
               ${(p.ingredients || []).map(i => `
@@ -738,6 +739,14 @@ function renderLogs(logs) {
 // ═══════════════════════════════════════════
 // Initialize
 // ═══════════════════════════════════════════
+
+// Handle initial hash
+(function() {
+  const hash = window.location.hash.replace('#', '');
+  if (hash && document.getElementById(`view-${hash}`)) {
+    navigateTo(hash);
+  }
+})();
 
 fetchDashboardData();
 setInterval(fetchDashboardData, 10000);
