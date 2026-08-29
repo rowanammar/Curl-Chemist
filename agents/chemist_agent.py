@@ -66,6 +66,8 @@ async def check_product_conflicts(products: list[dict]) -> list[dict]:
 4. MITIGATION EXCEPTION: If a conflict rule says Product A cannot be removed by Product B, but the user ALSO has a mitigating product on their shelf (like a clarifying shampoo with sulfates), DO NOT flag the conflict. The user already has the solution on their shelf!
 5. ABSENCE CONDITION EVALUATION: If a rule triggers on the absence of a product, you must carefully verify that NO product on the entire shelf can act as that product before flagging it.
 6. EXCLUSIONS: DO NOT flag conflicts based on weather/climate (like humidity/UV). DO NOT flag conflicts based on hair porosity/type unless explicitly provided.
+7. CONSOLIDATION: If multiple products trigger the exact same absence condition (e.g. multiple silicones missing a clarifying shampoo), group them into a SINGLE conflict. List all affected products in `product_a_name` (e.g. "Gliss Mask, Hydrating Conditioner") and leave `product_b_name` empty. Do not flag them multiple times.
+8. NECESSITY DEDUPLICATION: If a single product triggers multiple different rules that all require the EXACT SAME missing product type (e.g. it has Sulfates AND Keratin, both requiring a deep conditioner), COMBINE them into a single conflict. Do NOT output multiple conflicts for the same product if the required fix is identical.
 
 {shelf_text}
 

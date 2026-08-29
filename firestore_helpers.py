@@ -28,12 +28,13 @@ def username_exists(username: str) -> bool:
     return doc.exists
 
 
-def create_user(username: str, hair_profile: dict, location: dict, photo_url: str = None) -> dict:
+def create_user(username: str, email: str, hair_profile: dict, location: dict, photo_url: str = None) -> dict:
     """
     Create a new user account.
 
     Args:
         username: unique username (used as document ID)
+        email: user's email address
         hair_profile: dict with hair_type, porosity, protein_sensitivity, etc.
         location: dict with city, latitude, longitude
         photo_url: optional GCS URL of initial hair photo
@@ -49,6 +50,7 @@ def create_user(username: str, hair_profile: dict, location: dict, photo_url: st
 
     user_data = {
         "username": username,
+        "email": email,
         "created_at": datetime.now(timezone.utc),
         "location": location,
     }
@@ -353,6 +355,27 @@ def get_recent_pipeline_logs(user_id: str, limit: int = 100) -> list[dict]:
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
 
 
+def save_agent_trace(user_id: str, pipeline_name: str, trace_data: list):
+    """
+    Save a complete agent reasoning trace for observability and demo replay.
+
+    This persists the full chain of thoughts, tool calls, and results
+    so judges can see the agent's end-to-end reasoning process.
+
+    Args:
+        user_id: The user's unique identifier
+        pipeline_name: Which pipeline generated this trace
+        trace_data: List of trace events (thoughts, tool_calls, results, errors)
+    """
+    trace_doc = {
+        "pipeline": pipeline_name,
+        "trace": trace_data,
+        "step_count": len(trace_data),
+        "created_at": datetime.now(timezone.utc),
+    }
+    get_user_ref(user_id).collection("agent_traces").add(trace_doc)
+
+
 # ══════════════════════════════════════════════
 # User Profile
 # ══════════════════════════════════════════════
@@ -381,3 +404,35 @@ def get_user_location(user_id: str) -> dict:
         if location.get("latitude") and location.get("longitude"):
             return location
     return {"latitude": DEFAULT_LAT, "longitude": DEFAULT_LON, "city": DEFAULT_CITY}
+
+
+def get_user_email(user_id: str) -> str:
+    """Get the user's email."""
+    doc = db.collection("users").document(user_id).get()
+    if doc.exists:
+        return doc.to_dict().get("email", f"{user_id}@curlchemist.app")
+    return f"{user_id}@curlchemist.app"
+
+
+def get_recent_alerts(user_id: str, limit: int = 10) -> list[dict]:
+    """Get the user's recent shopping alerts."""
+    docs = (
+        get_user_ref(user_id)
+        .collection("alerts")
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
+        .limit(limit)
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def get_recent_calendar_events(user_id: str, limit: int = 10) -> list[dict]:
+    """Get the user's scheduled calendar events."""
+    docs = (
+        get_user_ref(user_id)
+        .collection("calendar_events")
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
+        .limit(limit)
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]

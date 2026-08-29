@@ -54,14 +54,18 @@
                 <div class="step-dot" data-step="4">4</div>
             </div>
 
-            <!-- Step 1: Username -->
+            <!-- Step 1: Username & Email -->
             <div class="onboarding-step active" id="signup-step-1">
-                <h3>Pick a Username</h3>
-                <p class="step-description">This is how you'll log in. It must be unique.</p>
+                <h3>Create Your Account</h3>
+                <p class="step-description">This is how you'll log in and receive shopping alerts.</p>
                 <div class="form-group">
                     <label class="form-label" for="signup-username">Username</label>
                     <input type="text" class="form-input" id="signup-username" placeholder="e.g. curlygirl_22" maxlength="30" autocomplete="off">
                     <div class="username-status" id="username-status"></div>
+                </div>
+                <div class="form-group mt-3">
+                    <label class="form-label" for="signup-email">Email Address</label>
+                    <input type="email" class="form-input" id="signup-email" placeholder="you@example.com" autocomplete="email">
                 </div>
                 <div class="btn-group">
                     <button class="btn btn-secondary" onclick="showLoginForm()">← Back</button>
@@ -339,6 +343,9 @@
     <main class="main-content">
         <div class="main-content-inner">
 
+            <!-- ALERTS BANNER MOVED TO CONFLICTS VIEW -->
+
+
             <!-- ══════════════════════════════════════
                  VIEW: Shelf
                  ══════════════════════════════════════ -->
@@ -498,6 +505,14 @@
                     </div>
                     <div id="routine-content" class="hidden"></div>
                 </div>
+
+                <!-- ════ Scheduled Events ════ -->
+                <div class="mt-5 hidden" id="calendar-events-section">
+                    <h3 class="section-title">Scheduled Events</h3>
+                    <p class="step-description mb-3">Download these .ics files to add your wash day routine to your calendar.</p>
+                    <div id="calendar-events-list"></div>
+                </div>
+
                 <div class="mt-5">
                     <button class="btn btn-secondary" onclick="triggerNightly()" id="btn-generate-routine">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>

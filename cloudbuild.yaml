@@ -19,8 +19,8 @@ steps:
       - '--region'
       - 'europe-west1'
       - '--allow-unauthenticated'
-      # In a true DevOps pipeline, you pull secrets from Google Secret Manager:
-      # - '--set-secrets=GEMINI_API_KEY=gemini-api-key:latest'
+      # Pull secrets from Google Secret Manager
+      - '--set-secrets=GOOGLE_OAUTH_CREDENTIALS=gmail-oauth-credentials:latest,GOOGLE_OAUTH_TOKEN=gmail-oauth-token:latest'
 
 images:
   - 'gcr.io/$PROJECT_ID/curl-chemist:$COMMIT_SHA'

@@ -1,96 +1,82 @@
-from datetime import datetime, timedelta, timezone
-from agents.climate_agent import fetch_weather, generate_routine
-from agents.chemist_agent import check_climate_conflicts
-from firestore_helpers import (
-    get_all_products, get_user_profile, save_routine,
-    log_pipeline_event, save_conflict, get_user_location,
-)
+"""
+Nightly Routine Pipeline — Autonomous Agent Version.
+
+BEFORE: A rigid 6-step Python script that fetched weather, loaded products,
+        checked conflicts, generated routine, and saved — all hard-coded.
+AFTER:  A single goal handed to the TaskmasterOrchestrator. The LLM
+        autonomously decides which tools to call and in what order.
+
+Triggered by Cloud Scheduler at 9 PM daily, or manually from the dashboard.
+"""
+
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from pipelines.orchestrator import run_agent_loop
+from pipelines.tool_registry import NIGHTLY_ROUTINE_TOOLS
+from firestore_helpers import log_pipeline_event
 
 
 async def run_nightly_routine_pipeline(user_id: str):
     """
     Execute the nightly routine generation pipeline for a specific user.
 
-    This is called by the /pipelines/nightly endpoint when
-    Cloud Scheduler fires at 9 PM.
+    The TaskmasterOrchestrator receives a goal and autonomously:
+    1. Fetches tomorrow's weather for the user's location
+    2. Loads the user's product shelf
+    3. Loads the user's hair profile
+    4. Checks for climate-dependent conflicts
+    5. Generates a personalized daily routine
+    6. Saves the routine to Firestore
+    7. If the routine includes a wash day or deep conditioning,
+       schedules a calendar event to block out time
+
+    Called by the /pipelines/nightly endpoint when Cloud Scheduler
+    fires at 9 PM, or manually by the user.
     """
     pipeline_name = "nightly_routine"
 
-    try:
-        log_pipeline_event(user_id, pipeline_name, "Pipeline triggered")
+    log_pipeline_event(user_id, pipeline_name, "Pipeline triggered")
 
-        # Step 1: Fetch weather for the USER'S location
-        location = get_user_location(user_id)
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Fetching weather for {location.get('city', 'unknown')}..."
-        )
-        weather = await fetch_weather(location["latitude"], location["longitude"])
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Weather fetched: {weather['humidity']}% humidity, "
-            f"UV {weather['uv_index']}, {weather['temperature_max']}°C"
-        )
+    # Calculate tomorrow's date for the agent
+    cairo_tz = ZoneInfo("Africa/Cairo")
+    tomorrow = datetime.now(cairo_tz) + timedelta(days=1)
+    date_str = tomorrow.strftime("%Y-%m-%d")
 
-        # Step 2: Load products
-        products = get_all_products(user_id)
-        if not products:
-            log_pipeline_event(
-                user_id, pipeline_name,
-                "No products on shelf — skipping routine generation",
-                status="warning",
-            )
-            return {"status": "skipped", "reason": "no_products"}
+    goal = f"""You are the Nightly Routine Agent for Curl Chemist. Generate tomorrow's personalized hair care routine.
 
-        log_pipeline_event(user_id, pipeline_name, f"Loaded {len(products)} products from shelf")
+USER ID: {user_id}
+TARGET DATE: {date_str}
 
-        # Step 3: Load profile
-        profile = get_user_profile(user_id) or {
-            "hair_type": "2B wavy",
-            "porosity": "medium",
-            "goals": ["reduce frizz", "improve definition"],
-        }
+YOUR MISSION (execute these steps using the tools available to you):
+1. Use fetch_weather_forecast to get tomorrow's weather for the user's location (user_id="{user_id}").
+2. Use get_shelf to load all products on the user's shelf (user_id="{user_id}").
+   - If the shelf is empty, stop and report that no routine can be generated.
+3. Use get_user_hair_profile to load the user's hair profile (user_id="{user_id}").
+4. Use detect_climate_conflicts to check for weather-dependent conflicts. Pass the products list (as JSON string), the humidity value, and the UV index from the weather data.
+5. If any climate conflicts are found, use save_conflict_to_db to save each one (user_id="{user_id}").
+6. Use generate_hair_routine to create a personalized routine. Pass all gathered data as JSON strings:
+   - products_json: the product shelf
+   - weather_json: the weather data
+   - profile_json: the hair profile
+   - climate_conflicts_json: any climate conflicts found
+7. Use save_routine_to_db to persist the routine (user_id="{user_id}", date_str="{date_str}").
+8. CALENDAR CHECK: Review the generated routine. If it includes a wash day (is_wash_day=true) or any step that takes more than 10 minutes (like deep conditioning, protein treatment, or hair mask), use schedule_calendar_event to block time on the user's calendar.
+   - Set event_title to something like "Wash Day Routine" or "Deep Conditioning Treatment"
+   - Set event_description to a summary of the routine steps
+   - Set duration_minutes based on the total routine time
+   - Set date_str to "{date_str}"
+   - Pass user_id="{user_id}"
+9. Provide a final summary of the routine generated and any calendar events scheduled.
 
-        # Step 4: Check climate conflicts
-        climate_conflicts = check_climate_conflicts(
-            products, weather["humidity"], weather["uv_index"]
-        )
-        if climate_conflicts:
-            log_pipeline_event(
-                user_id, pipeline_name,
-                f"Found {len(climate_conflicts)} climate-dependent conflicts",
-                status="warning",
-            )
-            for conflict in climate_conflicts:
-                save_conflict(user_id, conflict)
+IMPORTANT: Always pass user_id as the string "{user_id}" when calling tools that require it."""
 
-        # Step 5: Generate routine (pass conflicts so Gemini avoids those products)
-        log_pipeline_event(user_id, pipeline_name, "Generating routine via Gemini...")
-        routine = await generate_routine(products, weather, profile, climate_conflicts=climate_conflicts)
+    result = await run_agent_loop(goal, NIGHTLY_ROUTINE_TOOLS, user_id, pipeline_name)
 
-        # Step 6: Save routine
-        # Use tomorrow's date as the document ID → idempotent
-        from zoneinfo import ZoneInfo
-        cairo_tz = ZoneInfo("Africa/Cairo")
-        tomorrow = datetime.now(cairo_tz) + timedelta(days=1)
-        date_str = tomorrow.strftime("%Y-%m-%d")
+    log_pipeline_event(
+        user_id, pipeline_name,
+        f"Routine pipeline complete for {date_str}: {result.get('summary', 'done')[:200]}",
+        status="success",
+    )
 
-        routine_data = {
-            "date": date_str,
-            "weather": weather,
-            "climate_conflicts": climate_conflicts,
-            **routine,
-        }
-        save_routine(user_id, date_str, routine_data)
-
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Routine generated and saved for {date_str}",
-            status="success",
-        )
-
-        return {"status": "success", "date": date_str, "routine": routine_data}
-
-    except Exception as e:
-        log_pipeline_event(user_id, pipeline_name, f"Pipeline failed: {str(e)}", status="error")
-        raise
+    return result

@@ -1,15 +1,31 @@
+"""
+Shelf Reanalysis Pipeline — Autonomous Agent Version.
 
-from agents.scanner_agent import scan_product_label
-from agents.chemist_agent import check_product_conflicts
-from firestore_helpers import (
-    save_product, get_all_products, save_conflict,
-    get_active_conflicts, log_pipeline_event,
-)
+BEFORE: A rigid 6-step Python script that called functions in a fixed order.
+AFTER:  A single goal handed to the TaskmasterOrchestrator. The LLM
+        autonomously decides which tools to call and in what order.
+
+Triggered when a product photo is uploaded to Cloud Storage (via Pub/Sub)
+or manually from the dashboard.
+"""
+
+from pipelines.orchestrator import run_agent_loop
+from pipelines.tool_registry import SHELF_REANALYSIS_TOOLS
+from firestore_helpers import log_pipeline_event, get_user_location, clear_all_conflicts
 
 
 async def run_shelf_reanalysis_pipeline(user_id: str, image_uri: str, file_name: str):
     """
     Execute the shelf reanalysis cascade for a specific user.
+
+    The TaskmasterOrchestrator receives a goal and autonomously:
+    1. Scans the product label to extract ingredients
+    2. Saves the product to the user's shelf
+    3. Runs N×N conflict analysis against the entire shelf
+    4. Saves any detected conflicts
+    5. If critical conflicts involve a missing necessity (e.g., heavy silicones
+       without a clarifying shampoo), dispatches a proactive shopping alert
+    6. Reports a summary of findings
 
     Args:
         user_id: the user who uploaded the photo
@@ -18,107 +34,96 @@ async def run_shelf_reanalysis_pipeline(user_id: str, image_uri: str, file_name:
     """
     pipeline_name = "shelf_reanalysis"
 
-    try:
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Cascade triggered by upload: {file_name}"
-        )
+    log_pipeline_event(
+        user_id, pipeline_name,
+        f"Cascade triggered by upload: {file_name}"
+    )
 
-        # Step 1: Extract ingredients via Gemini Vision
-        log_pipeline_event(user_id, pipeline_name, "Scanning product label with Gemini Vision...")
-        product_data = await scan_product_label(image_uri)
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Extracted {len(product_data.get('ingredients', []))} ingredients "
-            f"from {product_data.get('product_name', 'unknown product')}"
-        )
+    location = get_user_location(user_id)
+    user_city = location.get("city", "their city/country")
 
-        # Step 2: Mark low-confidence ingredients
-        needs_review = [
-            i for i in product_data.get("ingredients", [])
-            if i.get("needs_review")
-        ]
-        if needs_review:
-            log_pipeline_event(
-                user_id, pipeline_name,
-                f"{len(needs_review)} ingredients need manual review (low OCR confidence)",
-                status="warning",
-            )
+    goal = f"""You are the Shelf Reanalysis Agent for Curl Chemist. A new product photo was just uploaded.
 
-        # Step 3: Save product to shelf
-        product_data["photo_uri"] = image_uri
-        product_id = save_product(user_id, product_data)
-        product_data["id"] = product_id
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Product saved to shelf: {product_data.get('product_name')}"
-        )
+IMAGE URI: {image_uri}
+FILE NAME: {file_name}
+USER ID: {user_id}
+USER LOCATION: {user_city}
 
-        # Step 4: Run N×N conflict analysis against ENTIRE shelf
-        all_products = get_all_products(user_id)
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Running N×N conflict analysis across {len(all_products)} products..."
-        )
+YOUR MISSION (execute these steps using the tools available to you):
+1. Use scan_label to extract the product's ingredients from the photo at the given image_uri.
+2. Use save_product_to_shelf to save the extracted product data to the user's shelf. Pass user_id="{user_id}" and the product data as a JSON string.
+3. Use get_shelf to retrieve ALL products currently on the user's shelf (user_id="{user_id}").
+4. Use analyze_conflicts to run N×N conflict analysis across the entire shelf (user_id="{user_id}").
+5. For EACH conflict found, use save_conflict_to_db to persist it (user_id="{user_id}").
+6. CRITICAL CHECK: Review the conflicts. ONLY use dispatch_shopping_alert for conflicts with a severity of EXACTLY "critical". Do NOT send shopping alerts for conflicts with "warning" or "info" severity. If a "critical" conflict exists (e.g., heavy silicones without a clarifying shampoo, or protein overload without moisture), send a shopping alert.
+   IMPORTANT: When dispatching a shopping alert, you MUST use your knowledge to provide 3 specific product recommendations for the missing product: a Low Cost choice, a Premium choice, and a Local choice.
+   RULES FOR RECOMMENDATIONS:
+   - "Local Choice": MUST be a real, existent product from a brand local to or easily available in {user_city}. DO NOT hallucinate products.
+   - "Low Cost Choice": MUST be a cheap product widely available in {user_city}.
+   - "Premium Choice": MUST be a high-end product.
+7. Provide a final summary of what product was added, how many conflicts were found, and any alerts dispatched.
 
-        conflicts = check_product_conflicts(all_products)
+IMPORTANT: Always pass user_id as the string "{user_id}" when calling tools that require it."""
 
-        # Step 5: Save new conflicts
-        # Filter to only conflicts involving the new product
-        new_conflicts = [
-            c for c in conflicts
-            if c["product_a_id"] == product_id or c["product_b_id"] == product_id
-        ]
+    clear_all_conflicts(user_id)
+    result = await run_agent_loop(goal, SHELF_REANALYSIS_TOOLS, user_id, pipeline_name)
 
-        critical_count = 0
-        for conflict in new_conflicts:
-            save_conflict(user_id, conflict)
-            if conflict["severity"] == "critical":
-                critical_count += 1
+    log_pipeline_event(
+        user_id, pipeline_name,
+        f"Shelf reanalysis cascade complete: {result.get('summary', 'done')[:200]}",
+        status="success",
+    )
+    return result
 
-        if new_conflicts:
-            log_pipeline_event(
-                user_id, pipeline_name,
-                f"Found {len(new_conflicts)} conflicts ({critical_count} critical) "
-                f"involving {product_data.get('product_name')}",
-                status="warning" if critical_count == 0 else "error",
-            )
-        else:
-            log_pipeline_event(
-                user_id, pipeline_name,
-                f"No conflicts found — {product_data.get('product_name')} is compatible with your shelf!",
-                status="success",
-            )
+async def run_shelf_check_pipeline(user_id: str):
+    """
+    Execute a targeted shelf check for a specific user after manual product addition.
 
-        # Step 6: If critical conflicts found, trigger routine regeneration
-        if critical_count > 0:
-            log_pipeline_event(
-                user_id, pipeline_name,
-                "Critical conflicts detected — triggering routine regeneration...",
-                status="error",
-            )
-            # Import here to avoid circular imports
-            from pipelines.nightly_routine import run_nightly_routine_pipeline
-            await run_nightly_routine_pipeline(user_id)
-            log_pipeline_event(
-                user_id, pipeline_name,
-                "Routines regenerated to account for new conflicts",
-                status="success",
-            )
+    The TaskmasterOrchestrator receives a goal and autonomously:
+    1. Retrieves ALL products currently on the user's shelf
+    2. Runs N×N conflict analysis
+    3. Saves any detected conflicts
+    4. Dispatches a proactive shopping alert if critical conflicts exist
 
-        log_pipeline_event(
-            user_id, pipeline_name,
-            f"Shelf reanalysis cascade complete for {product_data.get('product_name')}",
-            status="success",
-        )
+    Args:
+        user_id: the user whose shelf was updated
+    """
+    pipeline_name = "shelf_check"
 
-        return {
-            "status": "success",
-            "product": product_data,
-            "conflicts_found": len(new_conflicts),
-            "critical_conflicts": critical_count,
-        }
+    log_pipeline_event(
+        user_id, pipeline_name,
+        f"Shelf check triggered by manual addition"
+    )
 
-    except Exception as e:
-        log_pipeline_event(user_id, pipeline_name, f"Pipeline failed: {str(e)}", status="error")
-        raise
+    location = get_user_location(user_id)
+    user_city = location.get("city", "their city/country")
+
+    goal = f"""You are the Shelf Reanalysis Agent for Curl Chemist. The user has just manually added a new product to their shelf.
+
+USER ID: {user_id}
+USER LOCATION: {user_city}
+
+YOUR MISSION (execute these steps using the tools available to you):
+1. Use get_shelf to retrieve ALL products currently on the user's shelf (user_id="{user_id}").
+2. Use analyze_conflicts to run N×N conflict analysis across the entire shelf (user_id="{user_id}").
+3. For EACH conflict found, use save_conflict_to_db to persist it (user_id="{user_id}").
+4. CRITICAL CHECK: Review the conflicts. ONLY use dispatch_shopping_alert for conflicts with a severity of EXACTLY "critical". Do NOT send shopping alerts for conflicts with "warning" or "info" severity. If a "critical" conflict exists (e.g., heavy silicones without a clarifying shampoo, or protein overload without moisture), send a shopping alert.
+   IMPORTANT: When dispatching a shopping alert, you MUST use your knowledge to provide 3 specific product recommendations for the missing product: a Low Cost choice, a Premium choice, and a Local choice.
+   RULES FOR RECOMMENDATIONS:
+   - "Local Choice": MUST be a real, existent product from a brand local to or easily available in {user_city}. DO NOT hallucinate products.
+   - "Low Cost Choice": MUST be a cheap product widely available in {user_city}.
+   - "Premium Choice": MUST be a high-end product.
+5. Provide a final summary of how many conflicts were found and any alerts dispatched.
+
+IMPORTANT: Always pass user_id as the string "{user_id}" when calling tools that require it."""
+
+    clear_all_conflicts(user_id)
+    result = await run_agent_loop(goal, SHELF_REANALYSIS_TOOLS, user_id, pipeline_name)
+
+    log_pipeline_event(
+        user_id, pipeline_name,
+        f"Shelf check complete: {result.get('summary', 'done')[:200]}",
+        status="success",
+    )
+
+    return result

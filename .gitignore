@@ -60,3 +60,7 @@ Thumbs.db
 
 
 .agents/*
+
+
+credentials.json
+token.json

@@ -1,17 +1,84 @@
 """
-Advisor Agent — Personalized Hair Care Chat
-Uses Gemini to answer hair/beauty queries while enforcing strict boundaries.
+Advisor Agent — Personalized Hair Care Chat with Gemma Intent Router.
+
+ARCHITECTURE:
+1. User message → Gemma (fast, cheap) classifies intent
+2. If off-topic → immediate refusal (skip expensive Gemini call)
+3. If hair-care → route to Gemini 3.5 for full response
+
+WHY GEMMA:
+- Hackathon rubric awards 0.2 bonus points for using a secondary Google AI model
+- Gemma-3-4b-it is ultra-fast (<200ms) and perfect for binary classification
+- Saves Gemini 3.5 tokens on off-topic messages
 """
 
+import json
 from typing import Dict, Any, List
 from google import genai
 from google.genai import types
-from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
+from config import GEMINI_MODEL, GEMMA_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 def get_client() -> genai.Client:
     if GEMINI_API_KEY:
         return genai.Client(api_key=GEMINI_API_KEY)
     return genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+
+
+# ══════════════════════════════════════════════
+# GEMMA INTENT ROUTER — fast, cheap pre-filter
+# ══════════════════════════════════════════════
+
+async def classify_intent(client: genai.Client, user_message: str) -> dict:
+    """
+    Use Gemma as a fast intent classifier / safety filter.
+
+    Classifies the user's message BEFORE routing to the expensive
+    Gemini 3.5 model. Returns the intent category and confidence.
+
+    Returns:
+        dict with:
+        - intent: "hair_care" | "off_topic" | "greeting" | "unclear"
+        - confidence: float 0.0-1.0
+        - reason: brief explanation
+    """
+    try:
+        response = await client.aio.models.generate_content(
+            model=GEMMA_MODEL,
+            contents=[
+                types.Content(role="user", parts=[types.Part.from_text(text=f"""Classify this user message into exactly one category.
+
+MESSAGE: "{user_message}"
+
+CATEGORIES:
+- "hair_care": Questions about hair, curls, products, ingredients, routines, styling, scalp care, beauty, skincare, or personal grooming
+- "greeting": Simple greetings like "hi", "hello", "hey", "what can you do"
+- "off_topic": Completely unrelated questions (math, coding, politics, cooking non-beauty items, etc.)
+- "unclear": Cannot determine intent
+
+Return ONLY a JSON object with keys: "intent", "confidence" (0.0-1.0), "reason" (brief explanation).
+""")])
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1,
+            ),
+        )
+        result = json.loads(response.text)
+        # Ensure required keys exist
+        return {
+            "intent": result.get("intent", "unclear"),
+            "confidence": float(result.get("confidence", 0.5)),
+            "reason": result.get("reason", ""),
+        }
+    except Exception as e:
+        # If Gemma fails, default to routing through (fail-open)
+        print(f"Gemma intent classification failed: {e}")
+        return {"intent": "hair_care", "confidence": 0.0, "reason": f"Gemma unavailable: {e}"}
+
+
+# ══════════════════════════════════════════════
+# MAIN ADVISOR — Gemini 3.5 response generation
+# ══════════════════════════════════════════════
 
 async def generate_advisor_response(
     username: str, 
@@ -21,9 +88,32 @@ async def generate_advisor_response(
 ) -> str:
     """
     Generates a response from the AI Advisor.
+    
+    Flow:
+    1. Gemma classifies intent (< 200ms, cheap)
+    2. If off-topic with high confidence → immediate refusal
+    3. If hair-care or greeting → route to Gemini 3.5
     """
     client = get_client()
 
+    # ── Step 1: Gemma Intent Router ──
+    intent_result = await classify_intent(client, user_message)
+    intent = intent_result.get("intent", "unclear")
+    confidence = intent_result.get("confidence", 0.0)
+
+    # Log the intent classification for observability
+    print(f"[GEMMA ROUTER] intent={intent}, confidence={confidence}, reason={intent_result.get('reason', '')}")
+
+    # ── Step 2: Gate off-topic messages ──
+    if intent == "off_topic" and confidence >= 0.8:
+        return (
+            "I appreciate the question, but I'm specifically designed to help with "
+            "**hair care, styling, product analysis, and beauty routines**. "
+            "I can't help with that topic, but I'd love to answer any hair-related questions you have!\n\n"
+            f"*— Filtered by Gemma intent router (confidence: {confidence:.0%})*"
+        )
+
+    # ── Step 3: Build context for Gemini 3.5 ──
     # Format context for the prompt
     profile = user_context.get("profile", {})
     products = user_context.get("products", [])

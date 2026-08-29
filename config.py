@@ -22,6 +22,7 @@ GCP_REGION = os.getenv("GCP_REGION", "europe-west2")
 # Go to: https://console.cloud.google.com/vertex-ai/model-garden
 # Search for "Gemini" and find the exact model ID string.
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-3-4b-it")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", None)
 
 # ── Firestore ──

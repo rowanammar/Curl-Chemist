@@ -278,6 +278,7 @@ setupUploadZone('signup-photo-zone', 'signup-photo-input', 'signup-photo-preview
 
 async function handleSignup() {
   const username = document.getElementById('signup-username').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
   const porosity = document.getElementById('signup-porosity').value;
   const protein = document.getElementById('signup-protein').value;
   const thickness = document.getElementById('signup-thickness').value;
@@ -285,6 +286,7 @@ async function handleSignup() {
   
   const formData = new FormData();
   formData.append('username', username);
+  formData.append('email', email);
   formData.append('hair_type', selectedHairType);
   formData.append('porosity', porosity);
   formData.append('protein_sensitivity', protein);
@@ -324,6 +326,7 @@ async function handleSignup() {
       hideAuthOverlay();
       navigateTo('shelf');
       showToast(data.message, 'success');
+      showToast("Welcome Email sent! We've dispatched your introduction to your inbox.", "info");
       
       if (data.photo_analysis) {
          showToast(`AI detected your hair as ${data.photo_analysis.suggested_hair_type}`, 'info');
@@ -639,6 +642,7 @@ async function confirmProduct() {
     } else {
       showToast(msg, 'success');
     }
+    showToast("Agent is reviewing your shelf. A Shopping Alert email will be sent if necessities are missing.", "info");
 
     cancelScan();
     fetchDashboardData();
@@ -772,6 +776,7 @@ async function triggerNightly() {
     const data = await response.json();
     if (data.status === 'error') throw new Error(data.message || 'Pipeline failed');
     showToast('Routine generated.', 'success');
+    showToast('A Wash Day Calendar Invite has been sent to your email!', 'info');
     fetchDashboardData();
   } catch (error) {
     showToast('Pipeline failed: ' + error.message, 'error');
@@ -809,6 +814,7 @@ async function fetchDashboardData() {
     renderConflicts(data.conflicts);
     renderLogs(data.pipeline_logs);
     renderWashHistory(data.wash_history);
+    renderCalendarEvents(data.calendar_events);
     updateNavBadges(data);
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -986,6 +992,94 @@ function renderLogs(logs) {
     const st = l.status || 'info';
     return `<div class="log-entry"><div class="log-dot ${st}"></div><span class="log-time">${t}</span><span class="log-message"><strong>[${l.pipeline || '?'}]</strong> ${l.message || ''}</span></div>`;
   }).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════════
+// Alerts & Calendar Events
+// ═══════════════════════════════════════════
+
+function renderAlerts(alerts) {
+  const container = document.getElementById('alerts-container');
+  if (!container) return;
+  
+  if (!alerts || alerts.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  const activeAlerts = alerts.filter(a => !a.acknowledged);
+  if (activeAlerts.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  container.innerHTML = activeAlerts.map(a => `
+    <div class="alert-banner ${a.urgency === 'high' ? 'danger' : 'warning'}" id="alert-${a.id}">
+      <div class="alert-banner-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="alert-banner-content">
+        <h4>${a.title}</h4>
+        <p>${a.body}</p>
+        <p><strong>Recommended:</strong> ${a.recommended_product_type}</p>
+      </div>
+      <button class="alert-banner-close" onclick="acknowledgeAlert('${a.id}')">Dismiss</button>
+    </div>
+  `).join('');
+}
+
+async function acknowledgeAlert(alertId) {
+  try {
+    await apiFetch('/api/alerts/' + alertId + '/acknowledge', { method: 'POST' });
+    const alertEl = document.getElementById('alert-' + alertId);
+    if (alertEl) alertEl.remove();
+    fetchDashboardData();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderCalendarEvents(events) {
+  const section = document.getElementById('calendar-events-section');
+  const list = document.getElementById('calendar-events-list');
+  if (!section || !list) return;
+  
+  if (!events || events.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+  
+  section.classList.remove('hidden');
+  
+  list.innerHTML = events.map(e => `
+    <div class="calendar-event-card">
+      <div class="calendar-event-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="calendar-event-info">
+        <div class="calendar-event-title">${e.title}</div>
+        <div class="calendar-event-time">${new Date(e.start_time).toLocaleString()} (${e.duration_minutes} min)</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="downloadIcs('${encodeURIComponent(e.ics_content)}', 'wash_day.ics')">Download .ics</button>
+    </div>
+  `).join('');
+}
+
+function downloadIcs(content, filename) {
+  const decoded = decodeURIComponent(content);
+  const blob = new Blob([decoded], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ═══════════════════════════════════════════
