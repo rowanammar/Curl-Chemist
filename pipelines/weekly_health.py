@@ -12,34 +12,34 @@ from datetime import datetime, timezone
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
 
 
-async def run_weekly_health_pipeline():
-    """Execute the weekly hair health analysis pipeline."""
+async def run_weekly_health_pipeline(user_id: str):
+    """Execute the weekly hair health analysis pipeline for a specific user."""
     pipeline_name = "weekly_health"
 
     try:
-        log_pipeline_event(pipeline_name, "Weekly health analysis triggered")
+        log_pipeline_event(user_id, pipeline_name, "Weekly health analysis triggered")
 
         # Step 1: Get recent wash history
-        history = get_recent_wash_history(days=7)
+        history = get_recent_wash_history(user_id, days=7)
         if len(history) < 1:
             log_pipeline_event(
-                pipeline_name,
+                user_id, pipeline_name,
                 "No wash entries this week — skipping analysis",
                 status="warning",
             )
             return {"status": "skipped", "reason": "no_data"}
 
-        log_pipeline_event(pipeline_name, f"Analyzing {len(history)} wash entries from this week")
+        log_pipeline_event(user_id, pipeline_name, f"Analyzing {len(history)} wash entries from this week")
 
         # Step 2: Compute trends
         trend_data = compute_trends(history)
         log_pipeline_event(
-            pipeline_name,
+            user_id, pipeline_name,
             f"Trends computed: {trend_data.get('trends', {})}"
         )
 
         # Step 3: Generate insights via Gemini
-        log_pipeline_event(pipeline_name, "Generating insights via Gemini...")
+        log_pipeline_event(user_id, pipeline_name, "Generating insights via Gemini...")
 
         # Build context for Gemini
         history_summary = []
@@ -87,7 +87,7 @@ Return JSON with keys: "insights" (array of strings), "routine_adjustments" (arr
         insights = json.loads(response.text)
 
         # Step 4: Update adaptive profile with learned preferences
-        profile = get_user_profile() or {}
+        profile = get_user_profile(user_id) or {}
         adaptive = profile.get("adaptive_profile", {})
 
         # Store this week's adjustments in the long-term profile
@@ -95,10 +95,10 @@ Return JSON with keys: "insights" (array of strings), "routine_adjustments" (arr
         adaptive["latest_trends"] = trend_data.get("trends", {})
         adaptive["routine_adjustments"] = insights.get("routine_adjustments", [])
 
-        save_user_profile({"adaptive_profile": adaptive})
+        save_user_profile(user_id, {"adaptive_profile": adaptive})
 
         log_pipeline_event(
-            pipeline_name,
+            user_id, pipeline_name,
             "Adaptive profile updated with this week's learnings"
         )
 
@@ -116,10 +116,10 @@ Return JSON with keys: "insights" (array of strings), "routine_adjustments" (arr
             "worst_day": insights.get("worst_day"),
         }
 
-        save_weekly_report(week_str, report)
+        save_weekly_report(user_id, week_str, report)
 
         log_pipeline_event(
-            pipeline_name,
+            user_id, pipeline_name,
             f"Weekly report saved: {len(insights.get('insights', []))} insights generated",
             status="success",
         )
@@ -127,5 +127,5 @@ Return JSON with keys: "insights" (array of strings), "routine_adjustments" (arr
         return {"status": "success", "report": report}
 
     except Exception as e:
-        log_pipeline_event(pipeline_name, f"Pipeline failed: {str(e)}", status="error")
+        log_pipeline_event(user_id, pipeline_name, f"Pipeline failed: {str(e)}", status="error")
         raise

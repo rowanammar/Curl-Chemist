@@ -45,7 +45,7 @@ async def check_product_conflicts(products: list[dict]) -> list[dict]:
     """
     Passes the entire shelf + the conflict rule concepts to Gemini to find holistic, non-hallucinated conflicts.
     """
-    if len(products) < 2:
+    if len(products) == 0:
         return []
 
     # Simplify product list to text for prompt
@@ -54,14 +54,18 @@ async def check_product_conflicts(products: list[dict]) -> list[dict]:
         shelf_text += f"- Product ID: {p['id']}, Name: {p.get('product_name', 'Unknown')}\n"
         shelf_text += f"  Ingredients: {', '.join([i.get('inci', i.get('name', '')) for i in p.get('ingredients', [])])}\n\n"
 
-    # Load rules text for context
-    rules_text = json.dumps(CONFLICT_RULES, indent=2)
+    # Load rules text for context, filtering out climate rules to avoid LLM weather hallucinations
+    filtered_rules = [r for r in CONFLICT_RULES if r.get("type") != "climate_interaction"]
+    rules_text = json.dumps(filtered_rules, indent=2)
 
     prompt = f"""You are a Master Cosmetic Chemist. Here is the user's product shelf, and a rulebook of scientifically proven conflict concepts (like Silicone Buildup, Protein Overload, etc).
 
-1. Find any instances where products on the shelf violate these known concepts.
-2. DO NOT invent new conflict concepts. You are strictly bound to the concepts in the rulebook.
-3. Apply common sense. For example, a CoWash cannot wash out heavy petroleum (flag as buildup). Trace Citric Acid is a pH adjuster, not a chemical peel (ignore).
+1. RULEBOOK STRICTNESS: You ONLY flag conflicts that are fundamentally based on the concepts in the provided rulebook. DO NOT invent new conflict concepts that have no basis in the rules.
+2. INTELLIGENT APPLICATION: You are an agent, not a dumb script. Apply the rules intelligently based on their underlying chemistry. For example, if a rule states that a sulfate-free cleanser cannot wash out heavy silicones, you must logically deduce that having NO cleanser at all will cause the exact same (or worse) silicone buildup, and flag it under that rule.
+3. Apply common sense. Trace Citric Acid is a pH adjuster, not a chemical peel (ignore).
+4. MITIGATION EXCEPTION: If a conflict rule says Product A cannot be removed by Product B, but the user ALSO has a mitigating product on their shelf (like a clarifying shampoo with sulfates), DO NOT flag the conflict. The user already has the solution on their shelf!
+5. ABSENCE CONDITION EVALUATION: If a rule triggers on the absence of a product, you must carefully verify that NO product on the entire shelf can act as that product before flagging it.
+6. EXCLUSIONS: DO NOT flag conflicts based on weather/climate (like humidity/UV). DO NOT flag conflicts based on hair porosity/type unless explicitly provided.
 
 {shelf_text}
 
@@ -71,8 +75,8 @@ RULEBOOK:
 Return a JSON array of conflict objects. Each object must have exactly these keys:
 - "product_a_id": string (the ID of the first conflicting product)
 - "product_a_name": string (the name of the first conflicting product)
-- "product_b_id": string (the ID of the second conflicting product)
-- "product_b_name": string (the name of the second conflicting product)
+- "product_b_id": string (the ID of the second conflicting product, or empty if it's a shelf-wide issue)
+- "product_b_name": string (the name of the second conflicting product, or empty)
 - "severity": string (either "critical", "warning", or "info")
 - "explanation": string (A personalized explanation mentioning specific ingredients)
 - "fix": string (Actionable advice to fix it)
@@ -92,6 +96,18 @@ Return a JSON array of conflict objects. Each object must have exactly these key
         print(f"Gemini holistic conflict detection failed: {e}")
         return []
 
+
+def _ingredient_matches_category(ingredient: dict, trigger: dict) -> str | None:
+    """Check if an ingredient matches a rule trigger."""
+    name = ingredient.get("name", "").lower()
+    inci = ingredient.get("inci", "").lower()
+    
+    examples = [e.lower() for e in trigger.get("examples", [])]
+    
+    for ex in examples:
+        if ex in name or ex in inci:
+            return name or inci
+    return None
 
 def check_climate_conflicts(
     products: list[dict], humidity: float, uv_index: float

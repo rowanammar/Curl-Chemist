@@ -1525,3 +1525,442 @@ textarea.form-input {
     padding: var(--space-6) var(--space-6) var(--space-10);
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   AUTH & ONBOARDING (v2.0)
+   ═══════════════════════════════════════════════════ */
+
+.auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+.auth-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.auth-container {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-md);
+  transform: translateY(16px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-overlay.visible .auth-container {
+  transform: translateY(0);
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.auth-logo img {
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+}
+
+.auth-logo h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.01em;
+}
+
+.auth-logo p {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: var(--space-6) 0;
+  color: var(--color-text-faint);
+  font-size: var(--text-sm);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.auth-divider span {
+  padding: 0 var(--space-4);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Onboarding Stepper */
+.onboarding-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+  padding: 0 var(--space-4);
+}
+
+.step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-fg);
+  box-shadow: 0 0 0 3px rgba(220, 185, 144, 0.2);
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 var(--space-2);
+  transition: background 0.3s ease;
+}
+
+.step-dot.active + .step-line {
+  /* Only color lines leading TO an active dot if we wanted a progress bar effect, 
+     but keeping it simple: just dots change color */
+}
+
+.onboarding-step {
+  display: none;
+  animation: fadeIn 0.4s ease;
+}
+
+.onboarding-step.active {
+  display: block;
+}
+
+.onboarding-step h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-2);
+}
+
+.step-description {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+  line-height: 1.5;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Hair Type Grid */
+.hair-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.hair-type-btn {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text);
+}
+
+.hair-type-btn:hover {
+  border-color: var(--color-text-muted);
+}
+
+.hair-type-btn.selected {
+  background: rgba(220, 185, 144, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.hair-type-icon {
+  font-size: 24px;
+  margin-bottom: var(--space-2);
+}
+
+.hair-type-btn span {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  margin-bottom: 2px;
+}
+
+.hair-type-btn small {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+/* Goals Grid */
+.goals-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.goal-chip {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.goal-chip:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+.goal-chip.selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-fg);
+}
+
+/* City Typeahead */
+.city-results {
+  margin-top: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+.city-results:empty {
+  display: none;
+}
+.city-result-item {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+.city-result-item:last-child { border-bottom: none; }
+.city-result-item:hover { background: var(--color-surface-hover); }
+
+.selected-location {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+}
+
+.optional-badge {
+  font-size: var(--text-xs);
+  background: var(--color-surface-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.upload-zone.compact {
+  padding: var(--space-6);
+  min-height: 140px;
+}
+
+/* Sidebar User Display */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-6) var(--space-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: var(--space-4);
+}
+
+.sidebar-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--text-lg);
+}
+
+.sidebar-user-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-sidebar-active);
+}
+
+.sidebar-logout-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.sidebar-logout-btn:hover { color: var(--color-danger); }
+
+/* Mobile Header (Hidden on Desktop) */
+.mobile-header {
+  display: none;
+}
+.sidebar-overlay {
+  display: none;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   WASH DAY COMPARISON & HISTORY
+   ═══════════════════════════════════════════════════ */
+
+.comparison-panel {
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+}
+
+.comparison-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.comparison-text {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.comparison-climate {
+  font-size: var(--text-sm);
+  padding: var(--space-3);
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.comparison-list, .comparison-recommendations ul {
+  padding-left: var(--space-5);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.comparison-list li, .comparison-recommendations li {
+  margin-bottom: var(--space-1);
+}
+
+.comparison-recommendations {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.wash-history-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.history-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.history-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+}
+
+.history-card-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-sm);
+  background: var(--color-surface-hover);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.history-card-scores div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.history-card-scores span {
+  color: var(--color-text-muted);
+}
+
+.history-card-products {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}

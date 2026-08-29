@@ -1,26 +1,63 @@
 [
   {
-    "id": "silicone_sulfate_free",
+    "id": "silicone_buildup",
     "type": "silicone_buildup",
-    "trigger_a": {"category": "non_water_soluble_silicone", "examples": ["dimethicone", "cyclomethicone", "amodimethicone", "trimethylsilylamodimethicone"]},
-    "trigger_b": {"category": "sulfate_free_cleanser", "examples": ["cocamidopropyl betaine", "decyl glucoside", "sodium cocoyl isethionate"]},
+    "trigger_a": {
+      "category": "non_water_soluble_silicone",
+      "examples": [
+        "dimethicone",
+        "cyclomethicone",
+        "amodimethicone",
+        "trimethylsilylamodimethicone"
+      ]
+    },
     "severity": "critical",
-    "explanation": "Non-water-soluble silicones like {a} create a coating that sulfate-free shampoos cannot remove. This causes progressive buildup, making hair limp, greasy, and unable to absorb moisture.",
-    "fix": "Either switch to a water-soluble silicone (like dimethicone copolyol or PEG-modified silicones) or use a clarifying shampoo with sulfates once every 2 weeks to remove buildup."
+    "explanation": "You are using non-water-soluble silicones like {a}, but you don't have a sulfate-based clarifying shampoo on your shelf to wash them out. This causes progressive buildup, making hair limp, greasy, and unable to absorb moisture.",
+    "fix": "Either switch to a water-soluble silicone (like dimethicone copolyol or PEG-modified silicones) or use a clarifying shampoo with sulfates once every 2 weeks to remove buildup.",
+    "condition": "no_sulfate_cleanser_in_shelf"
   },
   {
     "id": "protein_overload",
     "type": "protein_excess",
-    "trigger_a": {"category": "protein", "examples": ["hydrolyzed keratin", "hydrolyzed wheat protein", "hydrolyzed silk", "amino acids", "collagen"]},
-    "trigger_b": {"category": "protein", "examples": ["hydrolyzed keratin", "hydrolyzed wheat protein", "hydrolyzed silk", "amino acids", "collagen"]},
+    "trigger_a": {
+      "category": "protein",
+      "examples": [
+        "hydrolyzed keratin",
+        "hydrolyzed wheat protein",
+        "hydrolyzed silk",
+        "amino acids",
+        "collagen"
+      ]
+    },
+    "trigger_b": {
+      "category": "protein",
+      "examples": [
+        "hydrolyzed keratin",
+        "hydrolyzed wheat protein",
+        "hydrolyzed silk",
+        "amino acids",
+        "collagen"
+      ]
+    },
     "severity": "warning",
-    "explanation": "Both products contain proteins ({a} and {b}). Using multiple protein-heavy products in the same routine can cause protein overload — hair becomes stiff, brittle, and snaps easily. This is especially risky for low-porosity hair.",
+    "explanation": "Both products contain proteins ({a} and {b}). Using multiple protein-heavy products in the same routine can cause protein overload \u00e2\u20ac\u201d hair becomes stiff, brittle, and snaps easily. This is especially risky for low-porosity hair.",
     "fix": "Use only ONE protein-containing product per wash day. Alternate with a protein-free moisturizing product."
   },
   {
     "id": "humectant_high_humidity",
     "type": "climate_interaction",
-    "trigger_a": {"category": "humectant", "examples": ["glycerin", "propylene glycol", "honey", "agave", "aloe vera", "sodium hyaluronate", "hyaluronic acid"]},
+    "trigger_a": {
+      "category": "humectant",
+      "examples": [
+        "glycerin",
+        "propylene glycol",
+        "honey",
+        "agave",
+        "aloe vera",
+        "sodium hyaluronate",
+        "hyaluronic acid"
+      ]
+    },
     "condition": "humidity_above_65",
     "severity": "warning",
     "explanation": "Humectants like {a} attract moisture from the environment. In high humidity (>65%), they pull excess water into the hair shaft, causing swelling and frizz. Cairo's summer humidity regularly exceeds 65%.",
@@ -29,17 +66,42 @@
   {
     "id": "humectant_low_humidity",
     "type": "climate_interaction",
-    "trigger_a": {"category": "humectant", "examples": ["glycerin", "propylene glycol", "honey", "agave", "sodium hyaluronate"]},
+    "trigger_a": {
+      "category": "humectant",
+      "examples": [
+        "glycerin",
+        "propylene glycol",
+        "honey",
+        "agave",
+        "sodium hyaluronate"
+      ]
+    },
     "condition": "humidity_below_30",
     "severity": "warning",
-    "explanation": "In low humidity (<30%), humectants like {a} can't find moisture in the air, so they pull it FROM your hair instead — causing dryness and brittleness.",
+    "explanation": "In low humidity (<30%), humectants like {a} can't find moisture in the air, so they pull it FROM your hair instead \u00e2\u20ac\u201d causing dryness and brittleness.",
     "fix": "In dry conditions, layer humectants UNDER a sealing oil or butter to lock moisture in rather than letting it escape."
   },
   {
     "id": "ph_clash",
     "type": "chemical_interaction",
-    "trigger_a": {"category": "acidic_treatment", "examples": ["glycolic acid", "lactic acid", "citric acid", "apple cider vinegar"]},
-    "trigger_b": {"category": "alkaline_product", "examples": ["sodium hydroxide", "calcium hydroxide", "baking soda", "soap-based cleanser"]},
+    "trigger_a": {
+      "category": "acidic_treatment",
+      "examples": [
+        "glycolic acid",
+        "lactic acid",
+        "citric acid",
+        "apple cider vinegar"
+      ]
+    },
+    "trigger_b": {
+      "category": "alkaline_product",
+      "examples": [
+        "sodium hydroxide",
+        "calcium hydroxide",
+        "baking soda",
+        "soap-based cleanser"
+      ]
+    },
     "severity": "critical",
     "explanation": "Your {a} product is acidic and your {b} product is alkaline. Using them in sequence neutralizes the acid treatment (wasting it) and creates unpredictable pH levels that can damage the hair cuticle.",
     "fix": "Never use acidic and alkaline products back-to-back. Wait at least 24 hours between them, or eliminate the alkaline product."
@@ -47,8 +109,24 @@
   {
     "id": "oil_before_water",
     "type": "layering_error",
-    "trigger_a": {"category": "oil_or_butter", "examples": ["coconut oil", "argan oil", "shea butter", "castor oil", "jojoba oil"]},
-    "trigger_b": {"category": "water_based_product", "examples": ["aloe vera gel", "flaxseed gel", "water-based leave-in"]},
+    "trigger_a": {
+      "category": "oil_or_butter",
+      "examples": [
+        "coconut oil",
+        "argan oil",
+        "shea butter",
+        "castor oil",
+        "jojoba oil"
+      ]
+    },
+    "trigger_b": {
+      "category": "water_based_product",
+      "examples": [
+        "aloe vera gel",
+        "flaxseed gel",
+        "water-based leave-in"
+      ]
+    },
     "severity": "warning",
     "explanation": "If you apply oil/butter ({a}) BEFORE a water-based product ({b}), the oil creates a barrier that prevents the water-based product from penetrating. Your {b} just sits on top doing nothing.",
     "fix": "Always apply water-based products FIRST, then seal with oils/butters. Thin to thick, water to oil."
@@ -56,16 +134,31 @@
   {
     "id": "alcohol_drying",
     "type": "ingredient_concern",
-    "trigger_a": {"category": "drying_alcohol", "examples": ["alcohol denat", "isopropyl alcohol", "sd alcohol", "ethanol"]},
+    "trigger_a": {
+      "category": "drying_alcohol",
+      "examples": [
+        "alcohol denat",
+        "isopropyl alcohol",
+        "sd alcohol",
+        "ethanol"
+      ]
+    },
     "condition": "damaged_or_dry_hair",
     "severity": "warning",
     "explanation": "Your product contains {a}, a short-chain (drying) alcohol. On damaged or dry hair, this strips remaining moisture and worsens breakage.",
-    "fix": "Look for products with fatty alcohols instead (cetyl alcohol, cetearyl alcohol, stearyl alcohol) — these are actually moisturizing, not drying."
+    "fix": "Look for products with fatty alcohols instead (cetyl alcohol, cetearyl alcohol, stearyl alcohol) \u00e2\u20ac\u201d these are actually moisturizing, not drying."
   },
   {
     "id": "sulfate_color_treated",
     "type": "ingredient_concern",
-    "trigger_a": {"category": "sulfate", "examples": ["sodium lauryl sulfate", "sodium laureth sulfate", "ammonium lauryl sulfate"]},
+    "trigger_a": {
+      "category": "sulfate",
+      "examples": [
+        "sodium lauryl sulfate",
+        "sodium laureth sulfate",
+        "ammonium lauryl sulfate"
+      ]
+    },
     "condition": "color_treated_hair",
     "severity": "critical",
     "explanation": "Sulfates like {a} are aggressive cleansers that strip color-treated hair, causing rapid fading and dryness.",
@@ -74,34 +167,62 @@
   {
     "id": "competing_hold_polymers",
     "type": "redundancy",
-    "trigger_a": {"category": "hold_polymer", "examples": ["PVP", "VP/VA copolymer", "polyquaternium-11", "polyquaternium-4"]},
-    "trigger_b": {"category": "hold_polymer", "examples": ["PVP", "VP/VA copolymer", "polyquaternium-11", "polyquaternium-4"]},
+    "trigger_a": {
+      "category": "hold_polymer",
+      "examples": [
+        "PVP",
+        "VP/VA copolymer",
+        "polyquaternium-11",
+        "polyquaternium-4"
+      ]
+    },
+    "trigger_b": {
+      "category": "hold_polymer",
+      "examples": [
+        "PVP",
+        "VP/VA copolymer",
+        "polyquaternium-11",
+        "polyquaternium-4"
+      ]
+    },
     "severity": "info",
-    "explanation": "Both products contain hold polymers ({a} and {b}). Using both doesn't give you double hold — it often creates flaking and stiffness as the polymers compete.",
+    "explanation": "Both products contain hold polymers ({a} and {b}). Using both doesn't give you double hold \u00e2\u20ac\u201d it often creates flaking and stiffness as the polymers compete.",
     "fix": "Pick ONE hold product per wash day. If one has stronger hold than the other, use the lighter one for refresh days."
   },
   {
     "id": "mineral_oil_buildup",
     "type": "buildup_risk",
-    "trigger_a": {"category": "mineral_oil", "examples": ["mineral oil", "paraffinum liquidum", "petrolatum", "petroleum jelly"]},
-    "trigger_b": {"category": "sulfate_free_cleanser", "examples": ["cocamidopropyl betaine", "decyl glucoside"]},
+    "trigger_a": {
+      "category": "mineral_oil",
+      "examples": [
+        "mineral oil",
+        "paraffinum liquidum",
+        "petrolatum",
+        "petroleum jelly"
+      ]
+    },
     "severity": "warning",
-    "explanation": "Mineral oil ({a}) creates a heavy, non-breathable coating similar to silicones. Your sulfate-free cleanser ({b}) cannot remove it effectively, leading to buildup.",
-    "fix": "Use a clarifying shampoo periodically, or replace the mineral oil product with a plant-based oil (coconut, argan, jojoba)."
+    "explanation": "Mineral oil ({a}) creates a heavy coating. Since you don't have a sulfate-based cleanser on your shelf to effectively wash it out, it will lead to severe buildup.",
+    "fix": "Use a clarifying shampoo periodically, or replace the mineral oil product with a plant-based oil (coconut, argan, jojoba).",
+    "condition": "no_sulfate_cleanser_in_shelf"
   },
   {
     "id": "heat_protectant_missing",
     "type": "missing_protection",
-    "trigger_a": {"category": "heat_styling_tool_user"},
+    "trigger_a": {
+      "category": "heat_styling_tool_user"
+    },
     "condition": "no_heat_protectant_in_shelf",
     "severity": "critical",
-    "explanation": "You use heat styling tools but don't have a heat protectant in your product shelf. Unprotected heat application above 150°C causes irreversible protein denaturation — your hair literally cooks.",
+    "explanation": "You use heat styling tools but don't have a heat protectant in your product shelf. Unprotected heat application above 150\u00c2\u00b0C causes irreversible protein denaturation \u00e2\u20ac\u201d your hair literally cooks.",
     "fix": "Add a heat protectant spray or serum to your routine. Apply before ANY heat tool use."
   },
   {
     "id": "uv_no_protection",
     "type": "climate_interaction",
-    "trigger_a": {"category": "any_product"},
+    "trigger_a": {
+      "category": "any_product"
+    },
     "condition": "uv_index_above_7_and_no_uv_filter",
     "severity": "warning",
     "explanation": "Cairo's UV index frequently exceeds 8. Prolonged UV exposure degrades hair proteins, fades color, and dries out the cuticle. None of your current products contain UV filters.",
@@ -110,17 +231,39 @@
   {
     "id": "wax_buildup",
     "type": "buildup_risk",
-    "trigger_a": {"category": "wax", "examples": ["beeswax", "candelilla wax", "carnauba wax", "microcrystalline wax"]},
-    "trigger_b": {"category": "sulfate_free_cleanser", "examples": ["cocamidopropyl betaine", "decyl glucoside"]},
+    "trigger_a": {
+      "category": "wax",
+      "examples": [
+        "beeswax",
+        "candelilla wax",
+        "carnauba wax",
+        "microcrystalline wax"
+      ]
+    },
     "severity": "warning",
-    "explanation": "Waxes like {a} are extremely difficult to remove without sulfate-based cleansers. Your sulfate-free shampoo ({b}) will leave wax residue, causing progressive weight and dullness.",
-    "fix": "Avoid wax-based products if you're sulfate-free, or do a monthly clarifying wash."
+    "explanation": "Waxes like {a} are extremely difficult to remove without sulfate-based cleansers. Without one on your shelf, wax residue will build up, causing progressive weight and dullness.",
+    "fix": "Avoid wax-based products if you're sulfate-free, or do a monthly clarifying wash.",
+    "condition": "no_sulfate_cleanser_in_shelf"
   },
   {
     "id": "polyquat_film",
     "type": "buildup_risk",
-    "trigger_a": {"category": "conditioning_polymer", "examples": ["polyquaternium-7", "polyquaternium-10", "guar hydroxypropyltrimonium chloride"]},
-    "trigger_b": {"category": "conditioning_polymer", "examples": ["polyquaternium-7", "polyquaternium-10", "guar hydroxypropyltrimonium chloride"]},
+    "trigger_a": {
+      "category": "conditioning_polymer",
+      "examples": [
+        "polyquaternium-7",
+        "polyquaternium-10",
+        "guar hydroxypropyltrimonium chloride"
+      ]
+    },
+    "trigger_b": {
+      "category": "conditioning_polymer",
+      "examples": [
+        "polyquaternium-7",
+        "polyquaternium-10",
+        "guar hydroxypropyltrimonium chloride"
+      ]
+    },
     "severity": "info",
     "explanation": "Multiple products with conditioning polymers ({a}, {b}) can create layered films on hair. Over time, this makes hair feel coated, heavy, and unresponsive to products.",
     "fix": "Limit conditioning polymer products to one per routine. Clarify monthly to remove film buildup."
@@ -128,43 +271,85 @@
   {
     "id": "keratin_moisture_imbalance",
     "type": "balance_issue",
-    "trigger_a": {"category": "protein", "examples": ["hydrolyzed keratin", "keratin amino acids"]},
+    "trigger_a": {
+      "category": "protein",
+      "examples": [
+        "hydrolyzed keratin",
+        "keratin amino acids"
+      ]
+    },
     "condition": "no_deep_conditioner_in_shelf",
     "severity": "warning",
     "explanation": "You're using keratin/protein treatments ({a}) but don't have a deep moisturizing conditioner in your shelf. Protein without sufficient moisture leads to brittle, straw-like hair. The protein-moisture balance is critical.",
-    "fix": "Add a protein-free deep conditioner (look for one with shea butter, oils, and NO protein in the first 5 ingredients). Alternate: protein wash → moisture wash."
+    "fix": "Add a protein-free deep conditioner (look for one with shea butter, oils, and NO protein in the first 5 ingredients). Alternate: protein wash \u00e2\u2020\u2019 moisture wash."
   },
   {
     "id": "coconut_oil_low_porosity",
     "type": "porosity_mismatch",
-    "trigger_a": {"category": "penetrating_oil", "examples": ["coconut oil", "palm kernel oil"]},
+    "trigger_a": {
+      "category": "penetrating_oil",
+      "examples": [
+        "coconut oil",
+        "palm kernel oil"
+      ]
+    },
     "condition": "low_porosity_hair",
     "severity": "warning",
-    "explanation": "Coconut oil ({a}) is a penetrating oil with large lauric acid molecules. On low-porosity hair (tightly sealed cuticles), it can't fully absorb — it sits on top, creating a greasy, weighed-down look and blocking other products from getting in.",
+    "explanation": "Coconut oil ({a}) is a penetrating oil with large lauric acid molecules. On low-porosity hair (tightly sealed cuticles), it can't fully absorb \u00e2\u20ac\u201d it sits on top, creating a greasy, weighed-down look and blocking other products from getting in.",
     "fix": "Switch to lighter oils that low-porosity hair can absorb: grapeseed oil, sweet almond oil, or argan oil. If you love coconut oil, use a tiny amount only as a pre-poo before shampooing."
   },
   {
     "id": "hard_water_product_interaction",
     "type": "climate_interaction",
-    "trigger_a": {"category": "soap_based_cleanser", "examples": ["castile soap", "african black soap", "soap bar shampoo"]},
+    "trigger_a": {
+      "category": "soap_based_cleanser",
+      "examples": [
+        "castile soap",
+        "african black soap",
+        "soap bar shampoo"
+      ]
+    },
     "condition": "hard_water_area",
     "severity": "warning",
-    "explanation": "Cairo has notably hard water (high calcium and magnesium). Soap-based cleansers like {a} react with hard water minerals to form soap scum — an insoluble film that coats your hair, causing dullness, tangles, and a waxy feel that's very hard to remove.",
+    "explanation": "Cairo has notably hard water (high calcium and magnesium). Soap-based cleansers like {a} react with hard water minerals to form soap scum \u00e2\u20ac\u201d an insoluble film that coats your hair, causing dullness, tangles, and a waxy feel that's very hard to remove.",
     "fix": "Use a synthetic detergent (syndet) cleanser instead of soap-based ones in hard water areas. Consider a chelating shampoo once a month (look for EDTA or phytic acid) to remove mineral deposits."
   },
   {
     "id": "over_moisturizing",
     "type": "balance_issue",
-    "trigger_a": {"category": "heavy_moisturizer", "examples": ["shea butter", "mango butter", "cocoa butter", "heavy cream conditioner"]},
-    "trigger_b": {"category": "heavy_moisturizer", "examples": ["shea butter", "mango butter", "cocoa butter", "heavy cream conditioner"]},
+    "trigger_a": {
+      "category": "heavy_moisturizer",
+      "examples": [
+        "shea butter",
+        "mango butter",
+        "cocoa butter",
+        "heavy cream conditioner"
+      ]
+    },
+    "trigger_b": {
+      "category": "heavy_moisturizer",
+      "examples": [
+        "shea butter",
+        "mango butter",
+        "cocoa butter",
+        "heavy cream conditioner"
+      ]
+    },
     "severity": "warning",
-    "explanation": "Layering multiple heavy moisturizers ({a} and {b}) can cause hygral fatigue — the hair shaft swells and contracts excessively with each wash, weakening it over time. Hair becomes mushy, limp, and loses its curl definition.",
-    "fix": "Use ONE heavy moisturizer per routine. If your hair feels mushy or gummy when wet, it's over-moisturized — do a light protein treatment to restore balance."
+    "explanation": "Layering multiple heavy moisturizers ({a} and {b}) can cause hygral fatigue \u00e2\u20ac\u201d the hair shaft swells and contracts excessively with each wash, weakening it over time. Hair becomes mushy, limp, and loses its curl definition.",
+    "fix": "Use ONE heavy moisturizer per routine. If your hair feels mushy or gummy when wet, it's over-moisturized \u00e2\u20ac\u201d do a light protein treatment to restore balance."
   },
   {
     "id": "acv_rinse_frequency",
     "type": "overuse_risk",
-    "trigger_a": {"category": "acidic_rinse", "examples": ["apple cider vinegar", "citric acid rinse", "lemon juice rinse"]},
+    "trigger_a": {
+      "category": "acidic_rinse",
+      "examples": [
+        "apple cider vinegar",
+        "citric acid rinse",
+        "lemon juice rinse"
+      ]
+    },
     "condition": "used_more_than_once_per_week",
     "severity": "warning",
     "explanation": "Apple cider vinegar and acidic rinses ({a}) are great for removing buildup and closing the cuticle, but using them more than once a week can over-acidify the hair, making it brittle and stripping its natural protective oils.",
@@ -173,25 +358,53 @@
   {
     "id": "clarifying_then_deep_condition",
     "type": "missing_followup",
-    "trigger_a": {"category": "clarifying_shampoo", "examples": ["sodium lauryl sulfate", "sodium laureth sulfate", "sodium C14-16 olefin sulfonate"]},
+    "trigger_a": {
+      "category": "clarifying_shampoo",
+      "examples": [
+        "sodium lauryl sulfate",
+        "sodium laureth sulfate",
+        "sodium C14-16 olefin sulfonate"
+      ]
+    },
     "condition": "no_deep_conditioner_used_after",
     "severity": "warning",
-    "explanation": "Clarifying shampoos ({a}) strip everything from the hair — oils, buildup, and moisture. Without a deep conditioning treatment immediately after, hair is left extremely dry, rough, and vulnerable to breakage.",
+    "explanation": "Clarifying shampoos ({a}) strip everything from the hair \u00e2\u20ac\u201d oils, buildup, and moisture. Without a deep conditioning treatment immediately after, hair is left extremely dry, rough, and vulnerable to breakage.",
     "fix": "ALWAYS follow a clarifying wash with a deep conditioner or a hair mask. Leave it on for 15-30 minutes under a heat cap for best results."
   },
   {
     "id": "leave_in_under_heavy_gel",
     "type": "layering_error",
-    "trigger_a": {"category": "lightweight_leave_in", "examples": ["water-based leave-in spray", "lightweight detangler", "rice water spray"]},
-    "trigger_b": {"category": "heavy_gel", "examples": ["flaxseed gel", "eco styler gel", "uncle funky's daughter gel"]},
+    "trigger_a": {
+      "category": "lightweight_leave_in",
+      "examples": [
+        "water-based leave-in spray",
+        "lightweight detangler",
+        "rice water spray"
+      ]
+    },
+    "trigger_b": {
+      "category": "heavy_gel",
+      "examples": [
+        "flaxseed gel",
+        "eco styler gel",
+        "uncle funky's daughter gel"
+      ]
+    },
     "severity": "info",
     "explanation": "A very lightweight leave-in ({a}) under a thick, heavy gel ({b}) may not provide enough moisture or slip. The gel's strong hold can overpower the leave-in, leading to crunchy curls that lack moisture underneath the cast.",
-    "fix": "Use a creamier leave-in or layer: lightweight leave-in → cream → gel. This ensures enough moisture is locked under the gel cast."
+    "fix": "Use a creamier leave-in or layer: lightweight leave-in \u00e2\u2020\u2019 cream \u00e2\u2020\u2019 gel. This ensures enough moisture is locked under the gel cast."
   },
   {
     "id": "salt_spray_dry_hair",
     "type": "ingredient_concern",
-    "trigger_a": {"category": "salt_spray", "examples": ["sea salt spray", "texturizing salt spray", "beach wave spray"]},
+    "trigger_a": {
+      "category": "salt_spray",
+      "examples": [
+        "sea salt spray",
+        "texturizing salt spray",
+        "beach wave spray"
+      ]
+    },
     "condition": "dry_or_damaged_hair",
     "severity": "warning",
     "explanation": "Salt sprays ({a}) create texture by dehydrating the hair shaft. On already dry or damaged curly hair, this accelerates moisture loss, increases brittleness, and can cause significant breakage at weak points.",

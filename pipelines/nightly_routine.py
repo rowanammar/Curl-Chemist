@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta, timezone
-from agents.climate_agent import fetch_cairo_weather, generate_routine
+from agents.climate_agent import fetch_weather, generate_routine
 from agents.chemist_agent import check_climate_conflicts
 from firestore_helpers import (
     get_all_products, get_user_profile, save_routine,
-    log_pipeline_event, save_conflict,
+    log_pipeline_event, save_conflict, get_user_location,
 )
 
 
-async def run_nightly_routine_pipeline():
+async def run_nightly_routine_pipeline(user_id: str):
     """
-    Execute the nightly routine generation pipeline.
+    Execute the nightly routine generation pipeline for a specific user.
 
     This is called by the /pipelines/nightly endpoint when
     Cloud Scheduler fires at 9 PM.
@@ -17,31 +17,35 @@ async def run_nightly_routine_pipeline():
     pipeline_name = "nightly_routine"
 
     try:
-        log_pipeline_event(pipeline_name, "Pipeline triggered by Cloud Scheduler")
+        log_pipeline_event(user_id, pipeline_name, "Pipeline triggered")
 
-        # Step 1: Fetch weather
-        log_pipeline_event(pipeline_name, "Fetching tomorrow's Cairo weather...")
-        weather = await fetch_cairo_weather()
+        # Step 1: Fetch weather for the USER'S location
+        location = get_user_location(user_id)
         log_pipeline_event(
-            pipeline_name,
+            user_id, pipeline_name,
+            f"Fetching weather for {location.get('city', 'unknown')}..."
+        )
+        weather = await fetch_weather(location["latitude"], location["longitude"])
+        log_pipeline_event(
+            user_id, pipeline_name,
             f"Weather fetched: {weather['humidity']}% humidity, "
             f"UV {weather['uv_index']}, {weather['temperature_max']}°C"
         )
 
         # Step 2: Load products
-        products = get_all_products()
+        products = get_all_products(user_id)
         if not products:
             log_pipeline_event(
-                pipeline_name,
+                user_id, pipeline_name,
                 "No products on shelf — skipping routine generation",
                 status="warning",
             )
             return {"status": "skipped", "reason": "no_products"}
 
-        log_pipeline_event(pipeline_name, f"Loaded {len(products)} products from shelf")
+        log_pipeline_event(user_id, pipeline_name, f"Loaded {len(products)} products from shelf")
 
         # Step 3: Load profile
-        profile = get_user_profile() or {
+        profile = get_user_profile(user_id) or {
             "hair_type": "2B wavy",
             "porosity": "medium",
             "goals": ["reduce frizz", "improve definition"],
@@ -53,15 +57,15 @@ async def run_nightly_routine_pipeline():
         )
         if climate_conflicts:
             log_pipeline_event(
-                pipeline_name,
+                user_id, pipeline_name,
                 f"Found {len(climate_conflicts)} climate-dependent conflicts",
                 status="warning",
             )
             for conflict in climate_conflicts:
-                save_conflict(conflict)
+                save_conflict(user_id, conflict)
 
         # Step 5: Generate routine (pass conflicts so Gemini avoids those products)
-        log_pipeline_event(pipeline_name, "Generating routine via Gemini...")
+        log_pipeline_event(user_id, pipeline_name, "Generating routine via Gemini...")
         routine = await generate_routine(products, weather, profile, climate_conflicts=climate_conflicts)
 
         # Step 6: Save routine
@@ -77,10 +81,10 @@ async def run_nightly_routine_pipeline():
             "climate_conflicts": climate_conflicts,
             **routine,
         }
-        save_routine(date_str, routine_data)
+        save_routine(user_id, date_str, routine_data)
 
         log_pipeline_event(
-            pipeline_name,
+            user_id, pipeline_name,
             f"Routine generated and saved for {date_str}",
             status="success",
         )
@@ -88,5 +92,5 @@ async def run_nightly_routine_pipeline():
         return {"status": "success", "date": date_str, "routine": routine_data}
 
     except Exception as e:
-        log_pipeline_event(pipeline_name, f"Pipeline failed: {str(e)}", status="error")
+        log_pipeline_event(user_id, pipeline_name, f"Pipeline failed: {str(e)}", status="error")
         raise

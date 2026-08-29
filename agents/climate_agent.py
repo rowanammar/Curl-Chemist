@@ -3,7 +3,7 @@ from google import genai
 from google.adk import Agent
 from config import (
     GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY,
-    CAIRO_LAT, CAIRO_LON, WEATHER_API_URL,
+    DEFAULT_LAT, DEFAULT_LON, WEATHER_API_URL,
 )
 
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
@@ -30,16 +30,23 @@ Only work with what they have.
 """
 
 
-async def fetch_cairo_weather() -> dict:
+async def fetch_weather(lat: float = None, lon: float = None) -> dict:
     """
-    Fetch tomorrow's weather forecast for Cairo.
+    Fetch tomorrow's weather forecast for the given location.
+
+    Args:
+        lat: latitude (defaults to DEFAULT_LAT if not provided)
+        lon: longitude (defaults to DEFAULT_LON if not provided)
 
     Returns dict with: humidity, uv_index, temperature, dew_point,
     wind_speed, and a human-readable summary.
     """
+    latitude = lat or DEFAULT_LAT
+    longitude = lon or DEFAULT_LON
+
     params = {
-        "latitude": CAIRO_LAT,
-        "longitude": CAIRO_LON,
+        "latitude": latitude,
+        "longitude": longitude,
         "daily": [
             "temperature_2m_max",
             "temperature_2m_min",
@@ -49,7 +56,7 @@ async def fetch_cairo_weather() -> dict:
             "wind_speed_10m_max",
         ],
         "hourly": ["dew_point_2m"],
-        "timezone": "Africa/Cairo",
+        "timezone": "auto",  # Auto-detect timezone from coordinates
         "forecast_days": 2,  # Today + tomorrow
     }
 
@@ -80,6 +87,12 @@ async def fetch_cairo_weather() -> dict:
     }
 
     return weather
+
+
+# Keep backward-compatible alias
+async def fetch_cairo_weather() -> dict:
+    """Legacy alias — fetches weather for the default location."""
+    return await fetch_weather(DEFAULT_LAT, DEFAULT_LON)
 
 
 async def generate_routine(products: list[dict], weather: dict, profile: dict, climate_conflicts: list[dict] = None) -> dict:
@@ -174,5 +187,5 @@ climate_agent = Agent(
     name="climate",
     model=GEMINI_MODEL,
     instruction=CLIMATE_INSTRUCTION,
-    tools=[fetch_cairo_weather, generate_routine],
+    tools=[fetch_weather, generate_routine],
 )

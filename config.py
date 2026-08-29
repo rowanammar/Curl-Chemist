@@ -37,13 +37,12 @@ TOPIC_WEEKLY_HEALTH = "weekly-health-trigger"
 TOPIC_USER_ALERTS = "user-alerts"
 
 # ── Weather ──
-# Open-Meteo is free, no API key needed, and has Cairo data.
-# We use Cairo's coordinates.
-CAIRO_LAT = 30.0444
-CAIRO_LON = 31.2357
+# Open-Meteo is free, no API key needed.
+# Location coordinates are now stored per-user in their profile.
 WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
+GEOCODING_API_URL = "https://geocoding-api.open-meteo.com/v1/search"
 
-# ── Demo User ──
-# For the hackathon, we use a single hardcoded user ID.
-# In production, this would come from authentication.
-DEMO_USER_ID = "rawan"
+# ── Default location (fallback if user hasn't set location) ──
+DEFAULT_LAT = 30.0444
+DEFAULT_LON = 31.2357
+DEFAULT_CITY = "Cairo"
