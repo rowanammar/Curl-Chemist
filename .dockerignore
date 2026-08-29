@@ -1,0 +1,31 @@
+# Environment variables
+.env
+.env.*
+
+# Python caches and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Git
+.git/
+.gitignore
+.agents/
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
