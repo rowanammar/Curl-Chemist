@@ -62,6 +62,7 @@ def schedule_calendar_event(
     event_uid = str(uuid4())
 
     # Generate standard iCalendar (.ics) content
+    sanitized_desc = event_description.replace(chr(10), '\\n')
     ics_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Curl Chemist//Taskmaster Agent//EN
@@ -72,7 +73,7 @@ UID:{event_uid}
 DTSTART:{event_date.strftime('%Y%m%dT%H%M%SZ')}
 DTEND:{event_end.strftime('%Y%m%dT%H%M%SZ')}
 SUMMARY:{event_title}
-DESCRIPTION:{event_description.replace(chr(10), '\\n')}
+DESCRIPTION:{sanitized_desc}
 STATUS:CONFIRMED
 ORGANIZER:CN=Curl Chemist Agent
 BEGIN:VALARM
