@@ -93,25 +93,6 @@ async def favicon():
     from fastapi.responses import Response
     return Response(status_code=204)
 
-@app.post("/api/auth/login")
-async def login(request: Request):
-    """Log in an existing user by username."""
-    try:
-        data = await request.json()
-        username = data.get("username", "").strip().lower()
-        if not username:
-            return JSONResponse({"status": "error", "message": "Username is required"}, status_code=400)
-            
-        user_doc = get_user_by_username(username)
-        if not user_doc:
-            return JSONResponse({"status": "error", "message": "User not found. Please create a profile."}, status_code=404)
-            
-        return {"status": "success", "user": user_doc}
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JSONResponse({"status": "error", "message": f"Login failed: {str(e)}"}, status_code=500)
-
 @app.post("/api/auth/signup")
 async def signup(
     username: str = Form(...),
@@ -212,15 +193,9 @@ async def signup(
         }
 
     except ValueError as e:
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=409,
-        )
+        return {"status": "error", "message": str(e)}
     except Exception as e:
-        return JSONResponse(
-            {"status": "error", "message": f"Signup failed: {str(e)}"},
-            status_code=500,
-        )
+        return {"status": "error", "message": f"Signup failed: {str(e)}"}
 
 
 @app.post("/api/auth/login")
@@ -231,17 +206,11 @@ async def login(request: Request):
         username = body.get("username", "").strip().lower()
 
         if not username:
-            return JSONResponse(
-                {"status": "error", "message": "Username is required"},
-                status_code=400,
-            )
+            return {"status": "error", "message": "Username is required"}
 
         user = get_user_by_username(username)
         if not user:
-            return JSONResponse(
-                {"status": "error", "message": "Username not found. Would you like to create a profile?"},
-                status_code=404,
-            )
+            return {"status": "error", "message": "Username not found. Would you like to create a profile?"}
 
         return {
             "status": "success",
@@ -250,10 +219,7 @@ async def login(request: Request):
         }
 
     except Exception as e:
-        return JSONResponse(
-            {"status": "error", "message": f"Login failed: {str(e)}"},
-            status_code=500,
-        )
+        return {"status": "error", "message": f"Login failed: {str(e)}"}
 
 
 @app.get("/api/auth/geocode")
