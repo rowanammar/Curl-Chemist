@@ -124,6 +124,27 @@ function handleLogout() {
   currentUser = null;
   localStorage.removeItem('curlChemistUser');
   dashboardData = { products: [], conflicts: [], routine: null, pipeline_logs: [], wash_history: [] };
+  
+  // Immediately clear UI to prevent flashing old data for the next user
+  renderProducts([]);
+  renderConflicts([]);
+  renderRoutine(null);
+  renderWashHistory([]);
+  renderLogs([]);
+
+  // Clear Advisor Chat
+  advisorChatHistory = [];
+  const chatMessages = document.getElementById('advisor-chat-messages');
+  if (chatMessages) {
+    chatMessages.innerHTML = `
+      <div class="chat-message bot">
+        <div class="chat-bubble">
+          Hi there! I'm your Curl Chemist Advisor. I'm connected to your shelf, your wash history, and your hair profile. Ask me anything about your hair care routine or products!
+        </div>
+      </div>
+    `;
+  }
+
   showAuthOverlay();
   document.getElementById('login-username').value = '';
 }
@@ -985,6 +1006,112 @@ function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
+
+// ═══════════════════════════════════════════
+// Advisor Chat
+// ═══════════════════════════════════════════
+let advisorChatHistory = [];
+
+async function sendAdvisorMessage() {
+  const input = document.getElementById('advisor-chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  
+  // Clear input
+  input.value = '';
+  
+  // Append user message to UI
+  appendChatMessage(message, 'user');
+  
+  // Append typing indicator for bot
+  const typingId = appendTypingIndicator();
+  
+  // Build payload with history
+  const payload = {
+    message: message,
+    history: advisorChatHistory
+  };
+  
+  // Update local history
+  advisorChatHistory.push({ role: 'user', content: message });
+  
+  try {
+    const res = await apiFetch('/api/advisor/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await res.json();
+    removeTypingIndicator(typingId);
+    
+    if (data.status === 'success') {
+      const reply = data.reply;
+      appendChatMessage(reply, 'bot');
+      advisorChatHistory.push({ role: 'model', content: reply });
+    } else {
+      appendChatMessage("I'm sorry, I encountered an error. Please try again.", 'bot');
+    }
+  } catch (err) {
+    console.error(err);
+    removeTypingIndicator(typingId);
+    appendChatMessage("Network error. Please try again later.", 'bot');
+  }
+}
+
+function appendChatMessage(text, sender) {
+  const container = document.getElementById('advisor-chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-message ${sender}`;
+  
+  // Simple markdown-ish conversion for basic formatting
+  let formattedText = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+    
+  div.innerHTML = `<div class="chat-bubble">${formattedText}</div>`;
+  container.appendChild(div);
+  
+  // Scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendTypingIndicator() {
+  const container = document.getElementById('advisor-chat-messages');
+  const div = document.createElement('div');
+  const id = 'typing-' + Date.now();
+  div.id = id;
+  div.className = 'chat-message bot';
+  div.innerHTML = `
+    <div class="chat-bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeTypingIndicator(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// Allow Enter key to send message
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('advisor-chat-input');
+  if (input) {
+    input.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendAdvisorMessage();
+      }
+    });
+  }
+});
 
 // Kick off
 initApp();

@@ -6,7 +6,7 @@
     <title>Curl Chemist — Your Hair Care Lab</title>
     <meta name="description" content="Curl Chemist analyzes your hair care products, detects ingredient conflicts, and builds personalized routines for curly hair.">
     <link rel="icon" type="image/png" href="/static/logo_hollow.PNG">
-    <link rel="stylesheet" href="/static/style.css?v=3">
+    <link rel="stylesheet" href="/static/style.css?v=5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -286,7 +286,6 @@
 
         <nav class="sidebar-nav">
             <div class="sidebar-section-label">Dashboard</div>
-
             <a href="#shelf" class="nav-link active" data-view="shelf" id="nav-shelf">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/></svg>
                 <span>My Shelf</span>
@@ -319,6 +318,15 @@
             <a href="#activity" class="nav-link" data-view="activity" id="nav-activity">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 <span>Activity</span>
+            </a>
+
+            <div class="sidebar-section-label">Expert Advice</div>
+
+            <a href="#advisor" class="nav-link" data-view="advisor" id="nav-advisor">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Ask the Chemist</span>
             </a>
         </nav>
 
@@ -593,6 +601,32 @@
                 </div>
             </section>
 
+            <!-- ══════════════════════════════════════
+                 VIEW: Advisor
+                 ══════════════════════════════════════ -->
+            <section class="view" id="view-advisor">
+                <div class="view-header">
+                    <h2>Ask the Chemist</h2>
+                    <p>Your personalized, AI-powered hair care expert.</p>
+                </div>
+                
+                <div class="advisor-chat-container">
+                    <div class="advisor-chat-messages" id="advisor-chat-messages">
+                        <div class="chat-message bot">
+                            <div class="chat-bubble">
+                                Hi there! I'm your Curl Chemist Advisor. I'm connected to your shelf, your wash history, and your hair profile. Ask me anything about your hair care routine or products!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="advisor-chat-input-area">
+                        <input type="text" id="advisor-chat-input" placeholder="Ask about your routine, products, or hair goals..." autocomplete="off">
+                        <button class="btn btn-primary" id="btn-advisor-send" onclick="sendAdvisorMessage()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
         </div><!-- /.main-content-inner -->
     </main>
 
@@ -601,6 +635,6 @@
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<script src="/static/app.js?v=3"></script>
+<script src="/static/app.js?v=6"></script>
 </body>
 </html>

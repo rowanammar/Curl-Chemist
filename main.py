@@ -36,6 +36,7 @@ from agents.scanner_agent import (
 from agents.chemist_agent import check_product_conflicts
 from agents.profiler_agent import analyze_hair_photo
 from agents.wash_comparison_agent import compare_wash_days_with_photos
+from agents.advisor_agent import generate_advisor_response
 from pipelines.nightly_routine import run_nightly_routine_pipeline
 from pipelines.shelf_reanalysis import run_shelf_reanalysis_pipeline
 from pipelines.weekly_health import run_weekly_health_pipeline
@@ -743,6 +744,52 @@ async def trigger_weekly_health(
 
     result = await run_weekly_health_pipeline(user_id)
     return JSONResponse(jsonable_encoder(result))
+
+
+# ════════════════════════════════════════════════════
+# ADVISOR CHAT
+# ════════════════════════════════════════════════════
+
+@app.post("/api/advisor/chat")
+async def advisor_chat(
+    request: Request,
+    x_user_id: Optional[str] = Header(None),
+):
+    """Handles chat messages to the Curl Advisor."""
+    user_id = x_user_id or ""
+    if not user_id:
+        return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
+
+    try:
+        body = await request.json()
+        message = body.get("message", "")
+        chat_history = body.get("history", [])
+
+        if not message:
+            return JSONResponse({"status": "error", "message": "Message is required"}, status_code=400)
+
+        # Gather user context
+        user_context = {
+            "profile": get_user_profile(user_id) or {},
+            "products": get_all_products(user_id) or [],
+            "wash_history": get_recent_wash_history(user_id, days=30) or [],
+            "routine": get_latest_routine(user_id) or {},
+        }
+
+        # Generate response
+        reply = await generate_advisor_response(
+            username=user_id,
+            user_context=user_context,
+            chat_history=chat_history,
+            user_message=message
+        )
+
+        return {"status": "success", "reply": reply}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 # ════════════════════════════════════════════════════
