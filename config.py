@@ -14,13 +14,14 @@ load_dotenv()  # Reads .env file during local development
 
 # ── Google Cloud ──
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "curl-chemist")
-GCP_REGION = os.getenv("GCP_REGION", "europe-west1")
+# Aligning default with your local .env
+GCP_REGION = os.getenv("GCP_REGION", "europe-west2")
 
 # ── Gemini ──
 # IMPORTANT: Verify this model ID in Vertex AI Model Garden before coding.
 # Go to: https://console.cloud.google.com/vertex-ai/model-garden
 # Search for "Gemini" and find the exact model ID string.
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", None)
 
 # ── Firestore ──
