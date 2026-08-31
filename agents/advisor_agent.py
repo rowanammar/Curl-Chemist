@@ -80,9 +80,9 @@ Return ONLY a JSON object with keys: "intent", "confidence" (0.0-1.0), "reason" 
             "reason": result.get("reason", ""),
         }
     except Exception as e:
-        # If Gemma fails, default to routing through (fail-open)
+        # Fail closed for Zero-Trust Gateway
         print(f"Gemma intent classification failed: {e}")
-        return {"intent": "hair_care", "confidence": 0.0, "reason": f"Gemma unavailable: {e}"}
+        return {"intent": "off_topic", "confidence": 1.0, "reason": f"Security gateway unavailable: {e}"}
 
 
 # ══════════════════════════════════════════════

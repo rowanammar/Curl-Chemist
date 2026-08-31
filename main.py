@@ -77,8 +77,9 @@ async def agent_gateway_middleware(request: Request, call_next):
             try:
                 from google.oauth2 import id_token
                 from google.auth.transport import requests
+                import os
                 request_transport = requests.Request()
-                id_info = id_token.verify_oauth2_token(token, request_transport)
+                id_info = id_token.verify_oauth2_token(token, request_transport, audience=os.getenv("CLOUD_RUN_URL"))
                 request.state.is_internal = True
                 return await call_next(request)
             except Exception as e:
@@ -317,11 +318,12 @@ async def login(request: Request):
 
         token = create_access_token(username)
 
+        safe_user = {k: v for k, v in user.items() if k != "password_hash"}
         return {
             "status": "success",
             "username": username,
             "token": token,
-            "user": user,
+            "user": safe_user,
         }
 
     except Exception as e:
@@ -675,8 +677,12 @@ async def log_wash_day(
         product_names = [p.get("product_name", "Unknown") for p in products]
 
         # Step 5: Build the wash entry
+        from zoneinfo import ZoneInfo
+        user_tz_str = location.get("timezone", "UTC")
+        local_time = datetime.now(timezone.utc).astimezone(ZoneInfo(user_tz_str))
+        
         entry = {
-            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "date": local_time.strftime("%Y-%m-%d"),
             "analysis": analysis,
             "weather_that_day": weather,
             "products_used": product_names,

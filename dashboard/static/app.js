@@ -1160,6 +1160,7 @@ async function sendAdvisorMessage() {
       const reply = data.reply;
       appendChatMessage(reply, 'bot');
       advisorChatHistory.push({ role: 'model', content: reply });
+      fetchDashboardData(); // Refresh activity log immediately
     } else {
       appendChatMessage("I'm sorry, I encountered an error. Please try again.", 'bot');
     }
