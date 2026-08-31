@@ -23,7 +23,7 @@ steps:
       - '--allow-unauthenticated'
       - '--no-cpu-throttling'
       # Pull secrets from Google Secret Manager
-      - '--set-secrets=GOOGLE_OAUTH_CREDENTIALS=gmail-oauth-credentials:latest,GOOGLE_OAUTH_TOKEN=gmail-oauth-token:latest'
+      - '--set-secrets=GOOGLE_OAUTH_CREDENTIALS=gmail-oauth-credentials:latest,GOOGLE_OAUTH_TOKEN=gmail-oauth-token:latest,JWT_SECRET=jwt-secret:latest,GEMMA_API_KEY=gemma-api-key:latest'
 
   # Step 4: Deploy Firestore Indexes
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
