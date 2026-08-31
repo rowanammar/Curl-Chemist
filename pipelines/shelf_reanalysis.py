@@ -51,7 +51,8 @@ YOUR MISSION (execute these steps using the tools available to you):
 4. CRITICAL CHECK: Review the conflicts. ONLY use dispatch_shopping_alert for conflicts with a severity of EXACTLY "critical". Do NOT send shopping alerts for conflicts with "warning" or "info" severity. If a "critical" conflict exists (e.g., heavy silicones without a clarifying shampoo, or protein overload without moisture), send a shopping alert.
    IMPORTANT: When dispatching a shopping alert, you MUST use your knowledge to provide 3 specific product recommendations for the missing product: a Low Cost choice, a Premium choice, and a Local choice.
    RULES FOR RECOMMENDATIONS:
-   - "Local Choice": MUST be a real, existent product from a brand local to or easily available in {user_city}. DO NOT hallucinate products.
+   - REAL PRODUCTS ONLY. DO NOT hallucinate, invent, or generate fake product names.
+   - "Local Choice": MUST be a real, existent product from a brand local to or easily available in {user_city}.
    - "Low Cost Choice": MUST be a cheap product widely available in {user_city}.
    - "Premium Choice": MUST be a high-end product.
 5. Provide a final summary of how many conflicts were found and any alerts dispatched."""

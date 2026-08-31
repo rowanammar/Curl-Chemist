@@ -19,6 +19,7 @@ import base64
 from google import genai
 from google.genai import types
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
+from pipelines.input_sanitizer import InputSanitizer
 from firestore_helpers import get_part_from_gcs_uri
 
 # Initialize the Gemini client via Vertex AI
@@ -97,6 +98,11 @@ async def scan_product_from_bytes(image_bytes: bytes, mime_type: str = "image/jp
     )
 
     text = response.text.strip()
+    
+    # Check for prompt injection in the OCR output
+    if await InputSanitizer.detect_prompt_injection(text):
+        raise ValueError("Prompt injection detected in image text.")
+
     if text.startswith("```json"): text = text[7:]
     elif text.startswith("```"): text = text[3:]
     if text.endswith("```"): text = text[:-3]
@@ -117,6 +123,9 @@ async def scan_product_by_name(product_name: str) -> dict:
     Returns:
         dict with product_name, brand, product_type, is_hair_product, ingredients list
     """
+    if await InputSanitizer.detect_prompt_injection(product_name):
+        raise ValueError("Prompt injection detected in product name.")
+
     response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
         contents=[

@@ -55,13 +55,12 @@ templates = Jinja2Templates(directory="dashboard/templates")
 # ════════════════════════════════════════════════════
 # AGENT GATEWAY MIDDLEWARE
 # ════════════════════════════════════════════════════
-from fastapi.responses import JSONResponse
 
 @app.middleware("http")
-async def agent_gateway_middleware(request: Request, call_next):
+async def auth_guard_middleware(request: Request, call_next):
     """
-    Agent Gateway: Unified routing and policy enforcement.
-    Provides Zero-Trust access control to agentic pipelines.
+    Auth Guard: Input validation and token verification.
+    Provides API access control for pipeline endpoints.
     """
     path = request.url.path
     
@@ -83,25 +82,25 @@ async def agent_gateway_middleware(request: Request, call_next):
                 request.state.is_internal = True
                 return await call_next(request)
             except Exception as e:
+                import traceback
+                traceback.print_exc()
+                # For /pipelines/ endpoints, this might be a dashboard user with a JWT instead of OIDC
+                # Let it fall through to the JWT check if it's not a /pubsub/ route
                 if path.startswith("/pubsub/"):
-                    from fastapi.responses import JSONResponse
                     return JSONResponse(
-                        status_code=401,
-                        content={"status": "error", "message": f"Agent Gateway: OIDC Authentication failed - {str(e)}"}
+                        status_code=403,
+                        content={"status": "error", "message": "Auth Guard: Invalid OIDC Token for internal route"}
                     )
-                pass # Fall through to JWT check if not a valid Google OIDC token
         elif path.startswith("/pubsub/"):
-            from fastapi.responses import JSONResponse
             return JSONResponse(
-                status_code=401,
-                content={"status": "error", "message": "Agent Gateway: Missing OIDC Token for /pubsub/"}
+                status_code=403,
+                content={"status": "error", "message": "Auth Guard: Missing OIDC Token for /pubsub/"}
             )
 
     # Check JWT Token
     if path.startswith("/api/") or path.startswith("/pipelines/"):
         auth_header = request.headers.get("authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=401,
                 content={"status": "error", "message": "Agent Gateway: Zero-Trust Policy Violation"}
@@ -111,7 +110,6 @@ async def agent_gateway_middleware(request: Request, call_next):
             payload = decode_access_token(token)
             request.state.user_id = payload.get("sub")
         except Exception as e:
-            from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=401,
                 content={"status": "error", "message": f"Agent Gateway: Authentication failed - {str(e)}"}
@@ -794,26 +792,7 @@ async def trigger_nightly_pipeline(
     result = await run_nightly_routine_pipeline(user_id)
     return JSONResponse(jsonable_encoder(result))
 
-@app.post("/pipelines/nightly/run-all")
-async def trigger_nightly_pipeline_all_users(request: Request):
-    """
-    Triggered by Cloud Scheduler every day at 9 PM Cairo time.
-    Runs the nightly routine for all users.
-    Requires OIDC authentication.
-    """
-    if not getattr(request.state, "is_internal", False):
-        return JSONResponse({"status": "error", "message": "Unauthorized"}, status_code=401)
-        
-    from firestore_helpers import get_all_users
-    users = get_all_users()
-    
-    import asyncio
-    for user in users:
-        user_id = user.get("id")
-        if user_id:
-            asyncio.create_task(run_nightly_routine_pipeline(user_id))
-            
-    return {"status": "success", "message": f"Triggered nightly routine for {len(users)} users"}
+
 
 
 
@@ -894,27 +873,30 @@ async def health():
 
 @app.post("/pipelines/nightly/run-all")
 async def trigger_nightly_run_all(request: Request):
-    """Run nightly routine for all users concurrently."""
+    """Run nightly routine for all users concurrently via Pub/Sub."""
     if not getattr(request.state, "is_internal", False):
         return JSONResponse({"status": "error", "message": "Unauthorized. Internal OIDC token required."}, status_code=403)
         
-    import asyncio
+    from google.cloud import pubsub_v1
+    from config import GCP_PROJECT_ID, TOPIC_NIGHTLY
+    import json
+    
+    publisher = pubsub_v1.PublisherClient()
+    topic_path = publisher.topic_path(GCP_PROJECT_ID, TOPIC_NIGHTLY)
+    
     users = db.collection("users").stream()
-    
-    async def process_user(uid):
-        try:
-            res = await run_nightly_routine_pipeline(uid)
-            return {"user": uid, "status": "success", "result": res}
-        except Exception as e:
-            return {"user": uid, "status": "error", "message": str(e)}
-    tasks = [process_user(user_doc.id) for user_doc in users]
-    results = await asyncio.gather(*tasks)
-    
-    return JSONResponse({"status": "completed", "results": results})
+    count = 0
+    for user_doc in users:
+        payload = {"action": "nightly", "user_id": user_doc.id}
+        data = json.dumps(payload).encode("utf-8")
+        publisher.publish(topic_path, data)
+        count += 1
+        
+    return JSONResponse({"status": "completed", "message": f"Published {count} nightly routine tasks to Pub/Sub."})
 
 @app.post("/pubsub/push")
 async def pubsub_push_handler(request: Request):
-    """Event-driven intake triggered by Cloud Storage via Pub/Sub."""
+    """Event-driven intake triggered by Cloud Storage or internal Pub/Sub messages."""
     import base64
     import json
     import asyncio
@@ -930,6 +912,17 @@ async def pubsub_push_handler(request: Request):
         # Decode base64 data
         decoded_data = base64.b64decode(data_b64).decode("utf-8")
         event_payload = json.loads(decoded_data)
+        
+        # Check if it's a generic JSON action message (like our nightly trigger)
+        action = event_payload.get("action")
+        if action == "nightly":
+            user_id = event_payload.get("user_id")
+            if user_id:
+                # Wait for the routine pipeline to finish directly in the handler so it can be retried if it fails
+                await run_nightly_routine_pipeline(user_id)
+                return {"status": "success", "message": f"Processed nightly routine for {user_id}"}
+            else:
+                return {"status": "error", "message": "Missing user_id for nightly action"}
         
         # Example: GCS Object create event payload contains 'name' (e.g., 'user123/wash_photos/image.jpg')
         file_path = event_payload.get("name", "")

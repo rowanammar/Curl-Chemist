@@ -1,12 +1,3 @@
-"""
-Central configuration for Curl Chemist.
-
-WHY THIS FILE EXISTS:
-Instead of scattering environment variables across 10 files,
-we read them all in ONE place. Every other file imports from here.
-If something changes (like the Gemini model ID), you change it in one spot.
-"""
-
 import os
 from dotenv import load_dotenv
 
@@ -19,10 +10,6 @@ GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "curl-chemist")
 # Aligning default with your local .env
 GCP_REGION = os.getenv("GCP_REGION", "europe-west2")
 
-# ── Gemini ──
-# IMPORTANT: Verify this model ID in Vertex AI Model Garden before coding.
-# Go to: https://console.cloud.google.com/vertex-ai/model-garden
-# Search for "Gemini" and find the exact model ID string.
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-4-26b-a4b-it")
 GEMMA_REGION = os.getenv("GEMMA_REGION", GCP_REGION)
@@ -31,10 +18,6 @@ GEMMA_REGION = os.getenv("GEMMA_REGION", GCP_REGION)
 GEMINI_API_KEY = None
 # Let Gemma use the API key from env (either GEMMA_API_KEY or GEMINI_API_KEY)
 GEMMA_API_KEY = os.getenv("GEMMA_API_KEY") or os.getenv("GEMINI_API_KEY")
-
-# ── Firestore ──
-# No special config needed — the client auto-detects project ID
-# when running on Cloud Run. Locally, it uses your gcloud auth.
 
 # ── Cloud Storage ──
 PHOTOS_BUCKET = os.getenv("PHOTOS_BUCKET", "curl-chemist-photos")

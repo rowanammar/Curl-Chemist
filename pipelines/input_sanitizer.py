@@ -1,5 +1,5 @@
 """
-Model Armor — Inline Guardrails for Security & Governance.
+PII Redaction and Input Validation.
 """
 import re
 import logging

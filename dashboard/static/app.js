@@ -14,6 +14,17 @@ let dashboardData = {
   wash_history: []
 };
 
+// ── Utilities ──
+const escapeHTML = (str) => {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 // ═══════════════════════════════════════════
 // Initialization & Auth Checks
 // ═══════════════════════════════════════════
@@ -791,8 +802,17 @@ async function triggerNightly() {
     const response = await apiFetch('/pipelines/nightly', { method: 'POST' });
     const data = await response.json();
     if (data.status === 'error') throw new Error(data.message || 'Pipeline failed');
+    
     showToast('Routine generated.', 'success');
-    showToast('A Wash Day Calendar Invite has been sent to your email!', 'info');
+    
+    // Check for calendar/email scheduling issues in the summary
+    const summaryStr = (data.summary || '').toLowerCase();
+    if (summaryStr.includes("failed to schedule") || summaryStr.includes("error scheduling")) {
+      showToast('Routine generated, but there was an issue scheduling the calendar event.', 'warning');
+    } else {
+      showToast('A Wash Day Calendar Invite has been sent to your email!', 'info');
+    }
+    
     fetchDashboardData();
   } catch (error) {
     showToast('Pipeline failed: ' + error.message, 'error');
@@ -862,32 +882,35 @@ function renderProducts(products) {
 
   list.innerHTML = products.map(p => {
     const ic = (p.ingredients || []).length;
-    const escapedName = (p.product_name || 'this').replace(/'/g, "\\'");
+    const escapedName = escapeHTML(p.product_name || 'Unknown');
+    const safeBrand = escapeHTML(p.brand || '');
+    const safeType = escapeHTML(p.product_type || '');
+    
     return `
       <div class="product-card">
-        <div class="product-card-main" onclick="toggleProduct('${p.id}')">
+        <div class="product-card-main" onclick="toggleProduct('${escapeHTML(p.id)}')">
           <div class="product-card-info">
-            <div class="product-card-name">${p.product_name || 'Unknown'}</div>
+            <div class="product-card-name">${escapedName}</div>
             <div class="product-card-meta">
-              ${p.brand ? `<span>${p.brand}</span>` : ''}
-              ${p.product_type ? `<span>${p.product_type}</span>` : ''}
+              ${safeBrand ? `<span>${safeBrand}</span>` : ''}
+              ${safeType ? `<span>${safeType}</span>` : ''}
               <span>${ic} ingredient${ic !== 1 ? 's' : ''}</span>
             </div>
           </div>
           <div class="product-card-actions">
-            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', '${escapedName}')">Remove</button>
-            <button class="product-card-expand" id="product-expand-${p.id}">
+            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteProduct('${escapeHTML(p.id)}', '${escapedName.replace(/'/g, "\\'")}')">Remove</button>
+            <button class="product-card-expand" id="product-expand-${escapeHTML(p.id)}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
           </div>
         </div>
-        <div class="product-card-detail" id="product-detail-${p.id}">
+        <div class="product-card-detail" id="product-detail-${escapeHTML(p.id)}">
           ${ic > 0 ? `
             <div class="ingredient-grid">
               ${(p.ingredients || []).map(i => `
                 <div class="ingredient-chip ${i.needs_review ? 'needs-review' : ''}">
-                  <span class="ingredient-chip-name">${i.name || i.inci || 'Unknown'}</span>
-                  <span class="ingredient-chip-category">${i.category || 'other'}</span>
+                  <span class="ingredient-chip-name">${escapeHTML(i.name || i.inci || 'Unknown')}</span>
+                  <span class="ingredient-chip-category">${escapeHTML(i.category || 'other')}</span>
                 </div>
               `).join('')}
             </div>
@@ -954,16 +977,22 @@ function renderConflicts(conflicts) {
   list.innerHTML = conflicts.map(c => {
     const sc = c.severity === 'critical' ? 'critical' : (c.severity === 'warning' ? 'warning' : '');
     const bc = c.severity === 'critical' ? 'badge-danger' : (c.severity === 'warning' ? 'badge-warning' : 'badge-neutral');
+    
+    const safeA = escapeHTML(c.product_a_name || '');
+    const safeB = escapeHTML(c.product_b_name || '');
+    const safeN = escapeHTML(c.product_name || '');
+    const productsText = (safeA && safeB) ? `${safeA} × ${safeB}` : safeN;
+    
     return `
       <div class="conflict-card ${sc}">
         <div class="conflict-card-header">
-          <span class="badge ${bc}">${c.severity}</span>
+          <span class="badge ${bc}">${escapeHTML(c.severity || 'unknown')}</span>
           <span class="conflict-card-products">
-            ${c.product_a_name && c.product_b_name ? `${c.product_a_name} × ${c.product_b_name}` : (c.product_name || '')}
+            ${productsText}
           </span>
         </div>
-        <div class="conflict-card-explanation">${c.explanation || 'Conflict'}</div>
-        ${c.fix ? `<div class="conflict-card-fix"><span>${c.fix}</span></div>` : ''}
+        <div class="conflict-card-explanation">${escapeHTML(c.explanation || 'Conflict')}</div>
+        ${c.fix ? `<div class="conflict-card-fix"><span>${escapeHTML(c.fix)}</span></div>` : ''}
       </div>`;
   }).join('');
 }
@@ -1021,7 +1050,7 @@ function renderLogs(logs) {
   list.innerHTML = `<div class="log-list">${logs.map(l => {
     const t = l.timestamp ? new Date(l.timestamp._seconds ? l.timestamp._seconds * 1000 : l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     const st = l.status || 'info';
-    return `<div class="log-entry"><div class="log-dot ${st}"></div><span class="log-time">${t}</span><span class="log-message"><strong>[${l.pipeline || '?'}]</strong> ${l.message || ''}</span></div>`;
+    return `<div class="log-entry"><div class="log-dot ${escapeHTML(st)}"></div><span class="log-time">${escapeHTML(t)}</span><span class="log-message"><strong>[${escapeHTML(l.pipeline || '?')}]</strong> ${escapeHTML(l.message || '')}</span></div>`;
   }).join('')}</div>`;
 }
 
@@ -1045,7 +1074,7 @@ function renderAlerts(alerts) {
   }
   
   container.innerHTML = activeAlerts.map(a => `
-    <div class="alert-banner ${a.urgency === 'high' ? 'danger' : 'warning'}" id="alert-${a.id}">
+    <div class="alert-banner ${a.urgency === 'high' ? 'danger' : 'warning'}" id="alert-${escapeHTML(a.id)}">
       <div class="alert-banner-icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -1054,11 +1083,11 @@ function renderAlerts(alerts) {
         </svg>
       </div>
       <div class="alert-banner-content">
-        <h4>${a.title}</h4>
-        <p>${a.body}</p>
-        <p><strong>Recommended:</strong> ${a.recommended_product_type}</p>
+        <h4>${escapeHTML(a.title || '')}</h4>
+        <p>${escapeHTML(a.body || '')}</p>
+        <p><strong>Recommended:</strong> ${escapeHTML(a.recommended_product_type || '')}</p>
       </div>
-      <button class="alert-banner-close" onclick="acknowledgeAlert('${a.id}')">Dismiss</button>
+      <button class="alert-banner-close" onclick="acknowledgeAlert('${escapeHTML(a.id)}')">Dismiss</button>
     </div>
   `).join('');
 }
@@ -1092,10 +1121,10 @@ function renderCalendarEvents(events) {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </div>
       <div class="calendar-event-info">
-        <div class="calendar-event-title">${e.title}</div>
+        <div class="calendar-event-title">${escapeHTML(e.title || '')}</div>
         <div class="calendar-event-time">${new Date(e.start_time).toLocaleString()} (${e.duration_minutes} min)</div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="downloadIcs('${encodeURIComponent(e.ics_content).replace(/'/g, "%27")}', 'wash_day.ics')">Download .ics</button>
+      <button class="btn btn-primary btn-sm" onclick="downloadIcs('${encodeURIComponent(e.ics_content || '').replace(/'/g, "%27")}', 'wash_day.ics')">Download .ics</button>
     </div>
   `).join('');
 }
@@ -1176,8 +1205,9 @@ function appendChatMessage(text, sender) {
   const div = document.createElement('div');
   div.className = `chat-message ${sender}`;
   
-  // Simple markdown-ish conversion for basic formatting
-  let formattedText = text
+  // Sanitize HTML and apply basic formatting
+  let safeText = escapeHTML(text || '');
+  let formattedText = safeText
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>');
     

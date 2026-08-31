@@ -433,10 +433,10 @@ def get_recent_pipeline_logs(user_id: str, limit: int = 100) -> list[dict]:
 
 def save_agent_trace(user_id: str, pipeline_name: str, trace_data: list):
     """
-    Save a complete agent reasoning trace for observability and demo replay.
+    Save pipeline logs for debugging.
 
-    This persists the full chain of thoughts, tool calls, and results
-    so judges can see the agent's end-to-end reasoning process.
+    This persists the chain of thoughts and results
+    so we can review the reasoning process.
 
     Args:
         user_id: The user's unique identifier
