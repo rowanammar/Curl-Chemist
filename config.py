@@ -26,7 +26,11 @@ GCP_REGION = os.getenv("GCP_REGION", "europe-west2")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-2-9b-it")
 GEMMA_REGION = os.getenv("GEMMA_REGION", GCP_REGION)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", None)
+
+# Force Gemini to use Vertex AI by ignoring any API key
+GEMINI_API_KEY = None
+# Let Gemma use the API key from env (either GEMMA_API_KEY or GEMINI_API_KEY)
+GEMMA_API_KEY = os.getenv("GEMMA_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 # ── Firestore ──
 # No special config needed — the client auto-detects project ID

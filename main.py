@@ -225,9 +225,9 @@ async def signup(
             try:
                 from google.genai import types
                 from google import genai
-                from config import GEMINI_MODEL, GCP_REGION, GEMINI_API_KEY
+                from config import GEMINI_MODEL, GCP_REGION, GCP_PROJECT_ID
 
-                prof_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(
+                prof_client = genai.Client(
                     vertexai=True,
                     project=GCP_PROJECT_ID,
                     location=GCP_REGION,
@@ -626,7 +626,7 @@ async def log_wash_day(
         photo_url = upload_photo_to_gcs(user_id, content, filename, mime_type)
 
         # Step 2: Analyze with profiler agent using inline data
-        prof_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(
+        prof_client = genai.Client(
             vertexai=True,
             project=GCP_PROJECT_ID,
             location=GCP_REGION,
