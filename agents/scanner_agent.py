@@ -96,7 +96,11 @@ async def scan_product_from_bytes(image_bytes: bytes, mime_type: str = "image/jp
         ),
     )
 
-    return json.loads(response.text)
+    text = response.text.strip()
+    if text.startswith("```json"): text = text[7:]
+    elif text.startswith("```"): text = text[3:]
+    if text.endswith("```"): text = text[:-3]
+    return json.loads(text.strip())
 
 
 async def scan_product_by_name(product_name: str) -> dict:
@@ -134,7 +138,11 @@ async def scan_product_by_name(product_name: str) -> dict:
         ),
     )
 
-    result = json.loads(response.text)
+    text = response.text.strip()
+    if text.startswith("```json"): text = text[7:]
+    elif text.startswith("```"): text = text[3:]
+    if text.endswith("```"): text = text[:-3]
+    result = json.loads(text.strip())
 
     # Safety: mark all AI-recalled ingredients as needing review
     for ing in result.get("ingredients", []):
@@ -161,6 +169,12 @@ async def scan_product_from_text(product_name: str, ingredients_text: str) -> di
     Returns:
         dict with product_name, brand, product_type, is_hair_product, ingredients list
     """
+    from pipelines.input_sanitizer import InputSanitizer
+    if await InputSanitizer.detect_prompt_injection(ingredients_text):
+        return {"error": "Security policy violation: Prompt Injection blocked."}
+    
+    ingredients_text = InputSanitizer.scan_for_pii(ingredients_text)
+    
     response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
         contents=[
@@ -180,7 +194,11 @@ async def scan_product_from_text(product_name: str, ingredients_text: str) -> di
         ),
     )
 
-    result = json.loads(response.text)
+    text = response.text.strip()
+    if text.startswith("```json"): text = text[7:]
+    elif text.startswith("```"): text = text[3:]
+    if text.endswith("```"): text = text[:-3]
+    result = json.loads(text.strip())
     result["scan_method"] = "manual_entry"
     return result
 
@@ -217,6 +235,10 @@ async def scan_product_label(image_uri: str) -> dict:
         ),
     )
 
-    return json.loads(response.text)
+    text = response.text.strip()
+    if text.startswith("```json"): text = text[7:]
+    elif text.startswith("```"): text = text[3:]
+    if text.endswith("```"): text = text[:-3]
+    return json.loads(text.strip())
 
 

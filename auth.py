@@ -6,9 +6,9 @@ from fastapi import HTTPException, status
 from config import IS_DEV
 
 # Secret key for JWT signing. Fallback to a dev key if not set.
-JWT_SECRET = os.getenv("JWT_SECRET", "dev_secret_key" if IS_DEV else "default_prod_secret_do_not_use")
+JWT_SECRET = os.getenv("JWT_SECRET", "dev_secret_key" if IS_DEV else "")
 if not JWT_SECRET:
-    raise ValueError("JWT_SECRET must be set")
+    raise ValueError("JWT_SECRET must be set in production")
 
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24

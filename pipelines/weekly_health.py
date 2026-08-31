@@ -21,8 +21,6 @@ async def run_weekly_health_pipeline(user_id: str):
     4. Suggest 1-2 routine adjustments.
     5. Update the user's adaptive profile with these new routine adjustments and the latest trends.
     6. Save the weekly health report for week '{week_str}' containing the insights, routine adjustments, best day, and worst day.
-    
-    Always pass user_id='{user_id}' when calling tools.
     """
 
     try:

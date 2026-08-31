@@ -45,18 +45,16 @@ USER ID: {user_id}
 USER LOCATION: {user_city}
 
 YOUR MISSION (execute these steps using the tools available to you):
-1. Use get_shelf to retrieve ALL products currently on the user's shelf (user_id="{user_id}").
-2. Use analyze_conflicts to run N×N conflict analysis across the entire shelf (user_id="{user_id}").
-3. For EACH conflict found, use save_conflict_to_db to persist it (user_id="{user_id}").
+1. Use get_shelf to retrieve ALL products currently on the user's shelf.
+2. Use analyze_conflicts to run N×N conflict analysis across the entire shelf.
+3. For EACH conflict found, use save_conflict_to_db to persist it.
 4. CRITICAL CHECK: Review the conflicts. ONLY use dispatch_shopping_alert for conflicts with a severity of EXACTLY "critical". Do NOT send shopping alerts for conflicts with "warning" or "info" severity. If a "critical" conflict exists (e.g., heavy silicones without a clarifying shampoo, or protein overload without moisture), send a shopping alert.
    IMPORTANT: When dispatching a shopping alert, you MUST use your knowledge to provide 3 specific product recommendations for the missing product: a Low Cost choice, a Premium choice, and a Local choice.
    RULES FOR RECOMMENDATIONS:
    - "Local Choice": MUST be a real, existent product from a brand local to or easily available in {user_city}. DO NOT hallucinate products.
    - "Low Cost Choice": MUST be a cheap product widely available in {user_city}.
    - "Premium Choice": MUST be a high-end product.
-5. Provide a final summary of how many conflicts were found and any alerts dispatched.
-
-IMPORTANT: Always pass user_id as the string "{user_id}" when calling tools that require it."""
+5. Provide a final summary of how many conflicts were found and any alerts dispatched."""
 
     clear_all_conflicts(user_id)
     result = await run_agent_loop(goal, SHELF_REANALYSIS_TOOLS, user_id, pipeline_name)

@@ -16,7 +16,7 @@ Instead of waiting for a user to ask questions, Curl Chemist acts as a true **Ta
 1. **Event-Driven Intake:** You upload a photo of a product label. Cloud Storage triggers Pub/Sub, waking up the **Scanner Agent (Gemini 3.5 Vision)** to extract ingredients and save them to your digital shelf.
 2. **N×N Conflict Resolution:** The **Chemist Agent** runs autonomously, cross-referencing your entire shelf against a cosmetic chemistry rulebook. If it detects you bought a protein treatment but already have 3 protein products, it logs a "Protein Overload" alert.
 3. **Asynchronous Execution:** Every night at 9 PM, **Cloud Scheduler** triggers the **Nightly Routine Pipeline**. The agent fetches tomorrow's weather (via Open-Meteo geocoding API) and formulates a specific wash/style routine from your shelf.
-4. **Fast & Cheap Routing:** The **Advisor Agent** uses **Gemma-3-4b-it** as an ultra-fast (<200ms) intent router to filter out off-topic questions before routing valid hair queries to the more expensive Gemini 3.5 model.
+4. **Fast & Cheap Routing:** The **Advisor Agent** uses **Gemma-4** as an ultra-fast intent router to filter out off-topic questions before routing valid hair queries to the more expensive Gemini 3.5 model.
 
 ---
 
@@ -24,7 +24,7 @@ Instead of waiting for a user to ask questions, Curl Chemist acts as a true **Ta
 
 ### 🧠 Google AI Integration
 *   **Gemini 3.5 Flash:** Core reasoning, vision-based label extraction, routine formulation, and personalized conflict explanations.
-*   **Gemma-3-4b-it (Bonus):** Implemented as a pre-filter/intent router in the `Advisor Agent`. It categorizes user prompts and blocks off-topic queries, saving latency and Gemini tokens.
+*   **Gemma-4 (Bonus):** Implemented as a pre-filter/intent router in the `Advisor Agent`. It categorizes user prompts and blocks off-topic queries, saving latency and Gemini tokens.
 *   **Google ADK:** Agent orchestration and tool binding.
 
 ### ☁️ Google Cloud Infrastructure
@@ -64,7 +64,7 @@ graph TD
     Chemist --> Gemini
     Scanner --> Gemini
     Wash --> Gemini
-    Advisor --> Router[Gemma-3-4b-it Intent Router]
+    Advisor --> Router[Gemma-4 Intent Router]
     Router -->|If valid| Gemini
     end
     
@@ -98,7 +98,7 @@ graph TD
    GCP_PROJECT_ID=your-project-id
    GCP_REGION=us-central1
    GEMINI_MODEL=gemini-3.5-flash
-   GEMMA_MODEL=gemma-3-4b-it
+   GEMMA_MODEL=gemma-4-26b-a4b-it
    # Optional: If not running via Vertex AI on GCP, provide API key
    GEMINI_API_KEY=your_api_key_here
    PHOTOS_BUCKET=your-gcs-bucket-name
@@ -123,7 +123,19 @@ graph TD
        --platform managed \
        --region us-central1 \
        --allow-unauthenticated \
+       --no-cpu-throttling \
        --set-env-vars GCP_PROJECT_ID=your-project-id,PHOTOS_BUCKET=your-gcs-bucket-name
+   ```
+
+3. **Set up Cloud Scheduler for Nightly Pipeline:**
+   ```bash
+   gcloud scheduler jobs create http nightly-routine \
+       --schedule="0 21 * * *" \
+       --time-zone="Africa/Cairo" \
+       --uri="https://YOUR_CLOUD_RUN_URL/pipelines/nightly/run-all" \
+       --http-method=POST \
+       --oidc-service-account-email="YOUR_SERVICE_ACCOUNT_EMAIL" \
+       --location=us-central1
    ```
 
 ---

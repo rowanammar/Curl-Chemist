@@ -1,7 +1,5 @@
 """
 Model Armor — Inline Guardrails for Security & Governance.
-Addresses the Hackathon rubric for blocking prompt injection,
-tool poisoning, and PII leaks.
 """
 import re
 import logging
@@ -67,10 +65,15 @@ class InputSanitizer:
     def sanitize_tool_args(args: dict) -> dict:
         """Prevents Tool Poisoning by enforcing arg length and type limits."""
         sanitized = {}
+        import json
         for k, v in args.items():
             if isinstance(v, str):
-                # Hard truncate strings to prevent buffer/context attacks
-                sanitized[k] = v[:2000]
+                try:
+                    json.loads(v)
+                    sanitized[k] = v # Valid JSON, bypass length limit
+                except Exception:
+                    # Hard truncate strings to prevent buffer/context attacks
+                    sanitized[k] = v[:2000]
             else:
                 sanitized[k] = v
         return sanitized

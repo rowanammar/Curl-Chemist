@@ -6,11 +6,11 @@ This replaces the rigid, hard-coded pipeline scripts with a genuine
 autonomous agent. The LLM receives a GOAL and a set of TOOLS, then
 decides on its own which tools to call and in what order.
 
-KEY ARCHITECTURAL FEATURES (mapped to rubric criteria):
+KEY ARCHITECTURAL FEATURES:
 - Agentic Autonomy: LLM sequences tool calls, not Python scripts
 - Architectural Discipline: Clean ReAct loop with message history
-- Robust State: Self-healing try/except with error feedback (FIX 3)
-- Observability: All reasoning + tool calls logged (FIX 5)
+- Robust State: Self-healing try/except with error feedback
+- Observability: All reasoning + tool calls logged
 """
 
 import json
@@ -53,7 +53,6 @@ RULES:
 4. Do NOT fabricate data — only use information returned by tools.
 5. When the goal is fully accomplished, provide a final summary of what you did and what you found.
 6. If you detect a critical issue that requires user action (missing products, severe conflicts), use the appropriate external action tool (shopping alert, calendar event).
-7. Always pass user_id as a string argument when tools require it.
 
 FORMAT: Think aloud, then call tools. When done, provide a JSON summary wrapped in ```json``` fences.
 """
@@ -79,6 +78,9 @@ def _build_tool_declarations(tools: list[Callable]) -> list[types.Tool]:
         properties = {}
         required = []
         for param_name, param in sig.parameters.items():
+            if param_name == "user_id":
+                continue # Hide from LLM since it is bound server-side
+
             param_type = param.annotation
             if param_type == inspect.Parameter.empty:
                 param_type = str
@@ -162,16 +164,21 @@ async def run_agent_loop(
         dict with status, summary, and trace of the agent's execution
     """
     client = _get_client()
-    tool_declarations = _build_tool_declarations(tools)
-
-    # Build tool lookup map
-    tool_map = {func.__name__: func for func in tools}
-
-    # Apply Model Armor Guardrails (Security & Governance Rubric)
-    if await InputSanitizer.detect_prompt_injection(goal):
-        log_pipeline_event(user_id, pipeline_name, "[SECURITY] Prompt injection detected in goal.", status="error")
-        return {"status": "error", "message": "Security policy violation: Prompt Injection blocked."}
     
+    import functools
+    bound_tools = []
+    for func in tools:
+        sig = inspect.signature(func)
+        if "user_id" in sig.parameters:
+            bound_func = functools.partial(func, user_id=user_id)
+            functools.update_wrapper(bound_func, func)
+            bound_tools.append(bound_func)
+        else:
+            bound_tools.append(func)
+
+    tool_declarations = _build_tool_declarations(bound_tools)
+    tool_map = {func.__name__: func for func in bound_tools}
+
     goal = InputSanitizer.scan_for_pii(goal)
 
     # Initialize message history
@@ -179,7 +186,7 @@ async def run_agent_loop(
         types.Content(role="user", parts=[types.Part.from_text(text=goal)]),
     ]
 
-    # Trace log for observability (FIX 5)
+    # Trace log for observability
     trace_log = []
     consecutive_errors = 0
     final_summary = ""
@@ -230,7 +237,7 @@ async def run_agent_loop(
         function_calls = []
         for part in parts:
             if part.text:
-                # This is the agent's REASONING — log it! (FIX 5)
+                # This is the agent's REASONING — log it!
                 thought = part.text.strip()
                 if thought:
                     log_pipeline_event(
@@ -258,7 +265,7 @@ async def run_agent_loop(
             )
             break
 
-        # Execute each tool call with self-healing (FIX 3)
+        # Execute each tool call with self-healing
         function_responses = []
         for fc_part in function_calls:
             fc = fc_part.function_call
@@ -321,7 +328,7 @@ async def run_agent_loop(
                 consecutive_errors = 0  # Reset on success
 
             except Exception as e:
-                # ── Self-healing: feed the error back to the LLM (FIX 3) ──
+                # ── Self-healing: feed the error back to the LLM ──
                 error_detail = f"{type(e).__name__}: {str(e)}"
                 tb = traceback.format_exc()
 
@@ -369,7 +376,7 @@ async def run_agent_loop(
             status="warning",
         )
 
-    # Save full trace for demo replay (FIX 5)
+    # Save full trace for demo replay
     save_agent_trace(user_id, pipeline_name, trace_log)
 
     return {

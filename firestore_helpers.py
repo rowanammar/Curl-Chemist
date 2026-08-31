@@ -81,6 +81,17 @@ def get_user_by_username(username: str) -> dict | None:
     return None
 
 
+def get_all_users() -> list[dict]:
+    """Get a list of all users."""
+    docs = db.collection("users").stream()
+    users = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        users.append(data)
+    return users
+
+
 # ══════════════════════════════════════════════
 # Photo Storage — Upload to GCS bucket
 # ══════════════════════════════════════════════

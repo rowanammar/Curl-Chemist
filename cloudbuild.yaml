@@ -21,6 +21,7 @@ steps:
       - '--region'
       - 'europe-west1'
       - '--allow-unauthenticated'
+      - '--no-cpu-throttling'
       # Pull secrets from Google Secret Manager
       - '--set-secrets=GOOGLE_OAUTH_CREDENTIALS=gmail-oauth-credentials:latest,GOOGLE_OAUTH_TOKEN=gmail-oauth-token:latest'
 

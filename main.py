@@ -53,7 +53,7 @@ templates = Jinja2Templates(directory="dashboard/templates")
 
 
 # ════════════════════════════════════════════════════
-# AGENT GATEWAY MIDDLEWARE (Security & Governance Rubric)
+# AGENT GATEWAY MIDDLEWARE
 # ════════════════════════════════════════════════════
 from fastapi.responses import JSONResponse
 
@@ -81,8 +81,20 @@ async def agent_gateway_middleware(request: Request, call_next):
                 id_info = id_token.verify_oauth2_token(token, request_transport)
                 request.state.is_internal = True
                 return await call_next(request)
-            except Exception:
+            except Exception as e:
+                if path.startswith("/pubsub/"):
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(
+                        status_code=401,
+                        content={"status": "error", "message": f"Agent Gateway: OIDC Authentication failed - {str(e)}"}
+                    )
                 pass # Fall through to JWT check if not a valid Google OIDC token
+        elif path.startswith("/pubsub/"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=401,
+                content={"status": "error", "message": "Agent Gateway: Missing OIDC Token for /pubsub/"}
+            )
 
     # Check JWT Token
     if path.startswith("/api/") or path.startswith("/pipelines/"):
@@ -112,7 +124,7 @@ async def agent_gateway_middleware(request: Request, call_next):
 # ════════════════════════════════════════════════════
 
 def get_user_id(request: Request) -> str:
-    """Agent Gateway: Enforces Zero-Trust Access Control (Hackathon Rubric)."""
+    """Agent Gateway: Enforces Zero-Trust Access Control."""
     user_id = getattr(request.state, "user_id", "")
     if not user_id:
         from fastapi import HTTPException
@@ -766,8 +778,7 @@ async def trigger_nightly_pipeline(
     request: Request,
 ):
     """
-    Triggered by Cloud Scheduler every day at 9 PM Cairo time,
-    or manually by a user from the dashboard.
+    Triggered manually by a user from the dashboard.
     Generates tomorrow's routine.
     """
     user_id = get_user_id(request)
@@ -776,6 +787,27 @@ async def trigger_nightly_pipeline(
 
     result = await run_nightly_routine_pipeline(user_id)
     return JSONResponse(jsonable_encoder(result))
+
+@app.post("/pipelines/nightly/run-all")
+async def trigger_nightly_pipeline_all_users(request: Request):
+    """
+    Triggered by Cloud Scheduler every day at 9 PM Cairo time.
+    Runs the nightly routine for all users.
+    Requires OIDC authentication.
+    """
+    if not getattr(request.state, "is_internal", False):
+        return JSONResponse({"status": "error", "message": "Unauthorized"}, status_code=401)
+        
+    from firestore_helpers import get_all_users
+    users = get_all_users()
+    
+    import asyncio
+    for user in users:
+        user_id = user.get("id")
+        if user_id:
+            asyncio.create_task(run_nightly_routine_pipeline(user_id))
+            
+    return {"status": "success", "message": f"Triggered nightly routine for {len(users)} users"}
 
 
 

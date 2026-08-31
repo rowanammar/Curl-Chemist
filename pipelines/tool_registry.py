@@ -53,8 +53,6 @@ def get_shelf(user_id: str) -> list:
     conflict analysis.
 
     Args:
-        user_id: The user's unique identifier
-
     Returns:
         List of product dicts, each with id, product_name, brand,
         product_type, and ingredients array.
@@ -69,9 +67,7 @@ def save_product_to_shelf(user_id: str, product_data_json: str) -> dict:
     The product_data should contain product_name, brand, product_type,
     and ingredients from the scan_label result.
 
-    Args:
-        user_id: The user's unique identifier
-        product_data_json: JSON string of the product data to save
+    Args:        product_data_json: JSON string of the product data to save
 
     Returns:
         dict with the saved product_id and product_name.
@@ -89,8 +85,6 @@ async def analyze_conflicts(user_id: str) -> list:
     protein overload, pH incompatibility, etc.
 
     Args:
-        user_id: The user's unique identifier
-
     Returns:
         List of conflict dicts, each with product_a_id, product_b_id,
         severity (critical/warning/info), explanation, and fix.
@@ -107,9 +101,7 @@ def save_conflict_to_db(user_id: str, conflict_json: str) -> dict:
     Use this tool for each conflict found by analyze_conflicts.
     Persists the conflict so it appears in the user's dashboard.
 
-    Args:
-        user_id: The user's unique identifier
-        conflict_json: JSON string of the conflict data
+    Args:        conflict_json: JSON string of the conflict data
 
     Returns:
         dict with the saved conflict_id.
@@ -125,8 +117,6 @@ def get_active_shelf_conflicts(user_id: str) -> list:
     Use this to check what conflicts already exist before adding new ones.
 
     Args:
-        user_id: The user's unique identifier
-
     Returns:
         List of active conflict dicts.
     """
@@ -144,8 +134,6 @@ async def fetch_weather_forecast(user_id: str) -> dict:
     and precipitation data. Essential for climate-aware routine generation.
 
     Args:
-        user_id: The user's unique identifier
-
     Returns:
         dict with temperature_max, temperature_min, humidity, uv_index,
         dew_point, wind_speed, precipitation_probability.
@@ -163,8 +151,6 @@ def get_user_hair_profile(user_id: str) -> dict:
     to the user's specific hair characteristics.
 
     Args:
-        user_id: The user's unique identifier
-
     Returns:
         dict with hair_type, porosity, protein_sensitivity, thickness,
         goals, and adaptive_profile (learned preferences).
@@ -186,9 +172,7 @@ def detect_climate_conflicts(user_id: str, humidity: float, uv_index: float) -> 
     should be avoided under current climate conditions (e.g., glycerin
     in high humidity, lack of UV protection on high UV days).
 
-    Args:
-        user_id: The user's unique identifier
-        humidity: Tomorrow's humidity percentage
+    Args:        humidity: Tomorrow's humidity percentage
         uv_index: Tomorrow's UV index
 
     Returns:
@@ -211,9 +195,7 @@ async def generate_hair_routine(
     Use this tool after gathering weather and climate conflicts. 
     Produces a step-by-step routine using only products from the user's shelf.
 
-    Args:
-        user_id: The user's unique identifier
-        weather_json: JSON string of tomorrow's weather
+    Args:        weather_json: JSON string of tomorrow's weather
         climate_conflicts_json: JSON string of climate conflicts to avoid
 
     Returns:
@@ -232,9 +214,7 @@ def save_routine_to_db(user_id: str, date_str: str, routine_data_json: str) -> d
     Use this tool to persist the routine after generation.
     Uses the date as document ID so re-runs are idempotent.
 
-    Args:
-        user_id: The user's unique identifier
-        date_str: Date string in YYYY-MM-DD format
+    Args:        date_str: Date string in YYYY-MM-DD format
         routine_data_json: JSON string of the full routine data
 
     Returns:
@@ -278,9 +258,7 @@ def fetch_recent_wash_history(user_id: str) -> list:
     
     Use this tool to get the user's wash data for the past week.
     
-    Args:
-        user_id: The user's unique identifier
-    """
+    Args:    """
     from firestore_helpers import get_recent_wash_history
     return get_recent_wash_history(user_id, days=7)
 
@@ -301,9 +279,7 @@ def update_adaptive_profile(user_id: str, updates_json: str) -> dict:
     
     Use this tool to store long-term learnings about the user's hair.
     
-    Args:
-        user_id: The user's unique identifier
-        updates_json: JSON string with keys like 'routine_adjustments' and 'latest_trends'
+    Args:        updates_json: JSON string with keys like 'routine_adjustments' and 'latest_trends'
     """
     from firestore_helpers import get_user_profile, save_user_profile
     profile = get_user_profile(user_id) or {}
@@ -318,9 +294,7 @@ def save_weekly_health_report(user_id: str, week_str: str, report_json: str) -> 
     
     Use this tool to save the final insights and analysis.
     
-    Args:
-        user_id: The user's unique identifier
-        week_str: The week string (e.g. 2026-W35)
+    Args:        week_str: The week string (e.g. 2026-W35)
         report_json: JSON string containing insights, best_day, worst_day, etc.
     """
     from firestore_helpers import save_weekly_report

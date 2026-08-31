@@ -33,9 +33,7 @@ def schedule_calendar_event(
     step like a deep conditioning treatment, wash day, or protein
     treatment. Creates an .ics calendar file the user can import.
 
-    Args:
-        user_id: The user's unique identifier
-        event_title: Title of the event (e.g., "Wash Day Routine — Deep Conditioning")
+    Args:        event_title: Title of the event (e.g., "Wash Day Routine — Deep Conditioning")
         event_description: Detailed description with routine steps
         duration_minutes: How long to block (default: 45 minutes)
         date_str: Date in YYYY-MM-DD format (defaults to tomorrow)
@@ -168,9 +166,7 @@ def dispatch_shopping_alert(
     necessity. This generates a REAL email notification using the Gmail API
     advising the user what to buy, including specific recommendations.
 
-    Args:
-        user_id: The user's unique identifier
-        alert_title: Alert headline (e.g., "Missing: Clarifying Shampoo")
+    Args:        alert_title: Alert headline (e.g., "Missing: Clarifying Shampoo")
         alert_body: Detailed explanation of why the product is needed
         recommended_product_type: Type of product to buy (e.g., "clarifying_shampoo")
         low_cost_option: Name of a budget-friendly option

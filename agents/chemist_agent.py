@@ -197,7 +197,11 @@ Your job is to CONSOLIDATE, DEDUPLICATE, and RESOLVE CONTRADICTIONS to produce a
                 temperature=0.1,
             ),
         )
-        return json.loads(response.text)
+        text = response.text.strip()
+        if text.startswith("```json"): text = text[7:]
+        elif text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        return json.loads(text.strip())
     except Exception as e:
         print(f"Gemini conflict consolidation failed: {e}")
         return raw_conflicts

@@ -7,9 +7,8 @@ ARCHITECTURE:
 3. If hair-care → route to Gemini 3.5 for full response
 
 WHY GEMMA:
-- Hackathon rubric awards 0.2 bonus points for using a secondary Google AI model
-- Gemma-3-4b-it is ultra-fast (<200ms) and perfect for binary classification
-- Saves Gemini 3.5 tokens on off-topic messages
+- Gemma-4-26b-a4b-it-maas is ultra-fast and perfect for binary classification
+- Saves Gemini tokens on off-topic messages
 """
 
 import json
@@ -68,7 +67,12 @@ Return ONLY a JSON object with keys: "intent", "confidence" (0.0-1.0), "reason" 
                 temperature=0.1,
             ),
         )
-        result = json.loads(response.text)
+        text = response.text.strip()
+        if text.startswith("```json"): text = text[7:]
+        elif text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        result = json.loads(text.strip())
+        
         # Ensure required keys exist
         return {
             "intent": result.get("intent", "unclear"),
@@ -101,6 +105,14 @@ async def generate_advisor_response(
     """
     client = get_client()
     gemma_client = get_client(force_region=GEMMA_REGION, is_gemma=True)
+
+    # Apply Input Sanitization
+    from pipelines.input_sanitizer import InputSanitizer
+    if await InputSanitizer.detect_prompt_injection(user_message):
+        log_pipeline_event(user_id, "advisor_chat", "[SECURITY] Prompt injection detected in chat.", status="error")
+        return "For security reasons, your message was blocked by our policy guardrails."
+
+    user_message = InputSanitizer.scan_for_pii(user_message)
 
     # ── Step 1: Gemma Intent Router ──
     intent_result = await classify_intent(gemma_client, user_message)
