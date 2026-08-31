@@ -69,10 +69,20 @@ async def agent_gateway_middleware(request: Request, call_next):
     if path == "/" or path.startswith("/static") or path.startswith("/api/auth") or path == "/favicon.ico":
         return await call_next(request)
         
-    # Check internal Cloud Scheduler / PubSub Headers for pipeline triggers
+    # Check internal Cloud Scheduler / PubSub OIDC Tokens for pipeline triggers
     if path.startswith("/pipelines/") or path.startswith("/pubsub/"):
-        if request.headers.get("X-CloudScheduler") == "true" or request.headers.get("X-PubSub-Trigger") == "true":
-            return await call_next(request)
+        auth_header = request.headers.get("authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            try:
+                from google.oauth2 import id_token
+                from google.auth.transport import requests
+                request_transport = requests.Request()
+                id_info = id_token.verify_oauth2_token(token, request_transport)
+                request.state.is_internal = True
+                return await call_next(request)
+            except Exception:
+                pass # Fall through to JWT check if not a valid Google OIDC token
 
     # Check JWT Token
     if path.startswith("/api/") or path.startswith("/pipelines/"):
@@ -847,6 +857,9 @@ async def health():
 @app.post("/pipelines/nightly/run-all")
 async def trigger_nightly_run_all(request: Request):
     """Run nightly routine for all users concurrently."""
+    if not getattr(request.state, "is_internal", False):
+        return JSONResponse({"status": "error", "message": "Unauthorized. Internal OIDC token required."}, status_code=403)
+        
     import asyncio
     users = db.collection("users").stream()
     

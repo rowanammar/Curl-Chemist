@@ -7,7 +7,7 @@ from config import IS_DEV
 
 # Secret key for JWT signing. Fallback to a dev key if not set.
 JWT_SECRET = os.getenv("JWT_SECRET", "dev_secret_key" if IS_DEV else "")
-if not JWT_SECRET and not IS_DEV:
+if not JWT_SECRET or (not IS_DEV and JWT_SECRET == "dev_secret_key"):
     raise ValueError("JWT_SECRET must be set in production")
 
 JWT_ALGORITHM = "HS256"

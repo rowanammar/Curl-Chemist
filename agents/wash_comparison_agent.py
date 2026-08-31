@@ -17,6 +17,7 @@ import json
 from google import genai
 from google.genai import types
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
+from firestore_helpers import get_part_from_gcs_uri
 
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(
     vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION
@@ -167,7 +168,7 @@ async def compare_wash_days_with_photos(
     # Add current photo
     try:
         content_parts.append(
-            types.Part.from_uri(file_uri=current_photo_uri, mime_type="image/jpeg")
+            get_part_from_gcs_uri(current_photo_uri, mime_type="image/jpeg")
         )
         content_parts.append(
             types.Part.from_text(text="[TODAY'S PHOTO - shown above]")
@@ -183,7 +184,7 @@ async def compare_wash_days_with_photos(
         if photo_url and photo_url.startswith("gs://"):
             try:
                 content_parts.append(
-                    types.Part.from_uri(file_uri=photo_url, mime_type="image/jpeg")
+                    get_part_from_gcs_uri(photo_url, mime_type="image/jpeg")
                 )
                 content_parts.append(
                     types.Part.from_text(text=f"[PREVIOUS DAY {i+1} PHOTO - {entry.get('date', 'unknown')}]")

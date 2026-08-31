@@ -19,6 +19,7 @@ import base64
 from google import genai
 from google.genai import types
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
+from firestore_helpers import get_part_from_gcs_uri
 
 # Initialize the Gemini client via Vertex AI
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
@@ -200,7 +201,7 @@ async def scan_product_label(image_uri: str) -> dict:
     response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
         contents=[
-            types.Part.from_uri(file_uri=image_uri, mime_type="image/jpeg"),
+            get_part_from_gcs_uri(image_uri, mime_type="image/jpeg"),
             types.Part.from_text(
                 text="Extract all ingredients from this product label photo. "
                 "Handle Arabic, English, and mixed-language text. "

@@ -13,6 +13,10 @@
   --color-secondary-light: rgba(107, 143, 113, 0.10);
   --color-accent: #C4956A;
   --color-accent-light: rgba(196, 149, 106, 0.12);
+  
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F0EA;
+  --color-primary-fg: #FFFFFF;
 
   --color-bg: #FAF6F1;
   --color-card: #FFFFFF;

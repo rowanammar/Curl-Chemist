@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Reads .env file during local development
 
-IS_DEV = os.getenv("IS_DEV", "true").lower() == "true"
+IS_DEV = os.getenv("IS_DEV", "false").lower() == "true"
 
 # ── Google Cloud ──
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "curl-chemist")
@@ -24,7 +24,8 @@ GCP_REGION = os.getenv("GCP_REGION", "europe-west2")
 # Go to: https://console.cloud.google.com/vertex-ai/model-garden
 # Search for "Gemini" and find the exact model ID string.
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-3-4b-it")
+GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-2-9b-it")
+GEMMA_REGION = os.getenv("GEMMA_REGION", GCP_REGION)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", None)
 
 # ── Firestore ──

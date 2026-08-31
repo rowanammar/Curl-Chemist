@@ -22,6 +22,16 @@ steps:
       # Pull secrets from Google Secret Manager
       - '--set-secrets=GOOGLE_OAUTH_CREDENTIALS=gmail-oauth-credentials:latest,GOOGLE_OAUTH_TOKEN=gmail-oauth-token:latest'
 
+  # Step 4: Deploy Firestore Indexes
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ -f firestore.indexes.json ]; then
+          gcloud firestore indexes composite create --file=firestore.indexes.json --project=$PROJECT_ID || echo "Indexes already exist or error occurred"
+        fi
+
 images:
   - 'gcr.io/$PROJECT_ID/curl-chemist:$COMMIT_SHA'
 

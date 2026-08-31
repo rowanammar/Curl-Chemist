@@ -29,22 +29,13 @@ def get_credentials():
         # 2. Fallback to local file (Development)
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     
-    # If there are no (valid) credentials available, let the user log in.
+    # If there are no (valid) credentials available, refresh or fail.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            if env_creds:
-                client_config = json.loads(env_creds)
-                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            elif os.path.exists('credentials.json'):
-                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            else:
-                print("WARNING: Neither env vars nor credentials.json found. Google API skipped.")
-                return None
-            
-            # Run local server, requires user to approve in browser
-            creds = flow.run_local_server(port=0)
+            print("WARNING: OAuth token missing or expired. Cannot run local server in this environment. Google API skipped.")
+            return None
             
         # Save the credentials for the next run (only if using local files)
         if not env_token:

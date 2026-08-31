@@ -16,7 +16,7 @@ import json
 from typing import Dict, Any, List
 from google import genai
 from google.genai import types
-from config import GEMINI_MODEL, GEMMA_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
+from config import GEMINI_MODEL, GEMMA_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY, GEMMA_REGION
 from firestore_helpers import log_pipeline_event
 
 def get_client(force_region: str = None) -> genai.Client:
@@ -97,7 +97,7 @@ async def generate_advisor_response(
     3. If hair-care or greeting → route to Gemini 3.5
     """
     client = get_client()
-    gemma_client = get_client(force_region="us-central1")
+    gemma_client = get_client(force_region=GEMMA_REGION)
 
     # ── Step 1: Gemma Intent Router ──
     intent_result = await classify_intent(gemma_client, user_message)

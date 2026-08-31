@@ -40,11 +40,12 @@ async def analyze_hair_photo(image_uri: str) -> dict:
         plus observations (free text)
     """
     from google.genai import types
+    from firestore_helpers import get_part_from_gcs_uri
 
     response = await client.aio.models.generate_content(
         model=GEMINI_MODEL,
         contents=[
-            types.Part.from_uri(file_uri=image_uri, mime_type="image/jpeg"),
+            get_part_from_gcs_uri(image_uri, mime_type="image/jpeg"),
             types.Part.from_text(
                 text="I need you to act as a curly hair expert profiler. "
                 "Score the following on a scale of 1-10: "

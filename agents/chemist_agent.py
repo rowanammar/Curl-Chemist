@@ -77,7 +77,7 @@ def check_condition(condition: str, products: list[dict], profile: dict = None) 
 
     if condition == "color_treated_hair":
         color_history = str(profile.get("color_history", "")).lower()
-        return "yes" in color_history or "dyed" in color_history or "bleached" in color_history or "color" in color_history
+        return "yes" in color_history or "dyed" in color_history or "bleached" in color_history or "color" in color_history or "highlighted" in color_history
 
     if condition == "low_porosity_hair":
         return str(profile.get("porosity", "")).lower() == "low"

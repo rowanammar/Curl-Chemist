@@ -353,8 +353,9 @@ except ImportError:
 
 def redact_pii(text: str) -> str:
     """Uses Google Cloud DLP to redact sensitive PII (like email addresses) from logs."""
+    from pipelines.input_sanitizer import InputSanitizer
     if not dlp_client or not text:
-        return text
+        return InputSanitizer.scan_for_pii(text) if text else text
         
     try:
         from config import GCP_PROJECT_ID
@@ -390,7 +391,7 @@ def redact_pii(text: str) -> str:
         return response.item.value
     except Exception as e:
         print(f"DLP redaction failed: {e}")
-        return text
+        return InputSanitizer.scan_for_pii(text)
 
 
 def log_pipeline_event(user_id: str, pipeline_name: str, message: str, status: str = "info"):
@@ -510,3 +511,20 @@ def get_recent_calendar_events(user_id: str, limit: int = 10) -> list[dict]:
         .stream()
     )
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+# ══════════════════════════════════════════════
+# GCS to Gemini Part Helper
+# ══════════════════════════════════════════════
+def get_part_from_gcs_uri(uri: str, mime_type: str = "image/jpeg"):
+    """
+    Returns a types.Part for Gemini.
+    If GEMINI_API_KEY is set (using AI Studio), downloads bytes directly.
+    Otherwise uses Part.from_uri (Vertex AI native).
+    """
+    from config import GEMINI_API_KEY
+    from google.genai import types
+    if GEMINI_API_KEY:
+        path = uri.replace(f"gs://{PHOTOS_BUCKET}/", "")
+        blob = bucket.blob(path)
+        return types.Part.from_bytes(data=blob.download_as_bytes(), mime_type=mime_type)
+    return types.Part.from_uri(file_uri=uri, mime_type=mime_type)

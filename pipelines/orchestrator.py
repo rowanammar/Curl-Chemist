@@ -168,7 +168,7 @@ async def run_agent_loop(
     tool_map = {func.__name__: func for func in tools}
 
     # Apply Model Armor Guardrails (Security & Governance Rubric)
-    if InputSanitizer.detect_prompt_injection(goal):
+    if await InputSanitizer.detect_prompt_injection(goal):
         log_pipeline_event(user_id, pipeline_name, "[SECURITY] Prompt injection detected in goal.", status="error")
         return {"status": "error", "message": "Security policy violation: Prompt Injection blocked."}
     

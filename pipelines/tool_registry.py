@@ -272,3 +272,66 @@ NIGHTLY_ROUTINE_TOOLS = [
     save_conflict_to_db,
     schedule_calendar_event,
 ]
+
+def fetch_recent_wash_history(user_id: str) -> list:
+    """Get the user's wash history from the past 7 days.
+    
+    Use this tool to get the user's wash data for the past week.
+    
+    Args:
+        user_id: The user's unique identifier
+    """
+    from firestore_helpers import get_recent_wash_history
+    return get_recent_wash_history(user_id, days=7)
+
+def analyze_wash_trends(history_json: str) -> dict:
+    """Compute health trends from wash history entries.
+    
+    Use this tool to analyze whether hair scores are improving or declining.
+    
+    Args:
+        history_json: JSON string of the wash history list
+    """
+    from agents.profiler_agent import compute_trends
+    history = json.loads(history_json) if isinstance(history_json, str) else history_json
+    return compute_trends(history)
+
+def update_adaptive_profile(user_id: str, updates_json: str) -> dict:
+    """Update the user's learned preferences and routine adjustments.
+    
+    Use this tool to store long-term learnings about the user's hair.
+    
+    Args:
+        user_id: The user's unique identifier
+        updates_json: JSON string with keys like 'routine_adjustments' and 'latest_trends'
+    """
+    from firestore_helpers import get_user_profile, save_user_profile
+    profile = get_user_profile(user_id) or {}
+    adaptive = profile.get("adaptive_profile", {})
+    updates = json.loads(updates_json) if isinstance(updates_json, str) else updates_json
+    adaptive.update(updates)
+    save_user_profile(user_id, {"adaptive_profile": adaptive})
+    return {"status": "success"}
+
+def save_weekly_health_report(user_id: str, week_str: str, report_json: str) -> dict:
+    """Save the finalized weekly report to Firestore.
+    
+    Use this tool to save the final insights and analysis.
+    
+    Args:
+        user_id: The user's unique identifier
+        week_str: The week string (e.g. 2026-W35)
+        report_json: JSON string containing insights, best_day, worst_day, etc.
+    """
+    from firestore_helpers import save_weekly_report
+    report = json.loads(report_json) if isinstance(report_json, str) else report_json
+    save_weekly_report(user_id, week_str, report)
+    return {"status": "success"}
+
+WEEKLY_HEALTH_TOOLS = [
+    fetch_recent_wash_history,
+    analyze_wash_trends,
+    get_user_hair_profile,
+    update_adaptive_profile,
+    save_weekly_health_report,
+]

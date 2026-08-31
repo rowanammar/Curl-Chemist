@@ -57,7 +57,12 @@ async function apiFetch(url, options = {}) {
   if (token) {
     options.headers['Authorization'] = `Bearer ${token}`;
   }
-  return fetch(url, options);
+  const response = await fetch(url, options);
+  if (response.status === 401 && !url.includes('/api/auth/login') && !url.includes('/api/auth/signup')) {
+    handleLogout();
+    showToast('Session expired. Please log in again.', 'warning');
+  }
+  return response;
 }
 
 // ═══════════════════════════════════════════
