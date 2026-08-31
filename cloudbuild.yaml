@@ -16,6 +16,8 @@ steps:
       - 'curl-chemist'
       - '--image'
       - 'gcr.io/$PROJECT_ID/curl-chemist:$COMMIT_SHA'
+      - '--port'
+      - '8000'
       - '--region'
       - 'europe-west1'
       - '--allow-unauthenticated'
