@@ -8,7 +8,15 @@
         "dimethicone",
         "cyclomethicone",
         "amodimethicone",
-        "trimethylsilylamodimethicone"
+        "trimethylsilylamodimethicone",
+        "phenyl trimethicone",
+        "cetyl dimethicone",
+        "stearyl dimethicone",
+        "dimethiconol",
+        "bis-aminopropyl dimethicone",
+        "cetearyl methicone",
+        "stearoxy dimethicone",
+        "behenoxy dimethicone"
       ]
     },
     "severity": "critical",
@@ -26,7 +34,17 @@
         "hydrolyzed wheat protein",
         "hydrolyzed silk",
         "amino acids",
-        "collagen"
+        "collagen",
+        "hydrolyzed rice protein",
+        "hydrolyzed soy protein",
+        "keratin",
+        "silk amino acids",
+        "hydrolyzed collagen",
+        "hydrolyzed quinoa",
+        "oat amino acids",
+        "wheat amino acids",
+        "hydrolyzed oat protein",
+        "hydrolyzed vegetable protein"
       ]
     },
     "trigger_b": {
@@ -36,7 +54,17 @@
         "hydrolyzed wheat protein",
         "hydrolyzed silk",
         "amino acids",
-        "collagen"
+        "collagen",
+        "hydrolyzed rice protein",
+        "hydrolyzed soy protein",
+        "keratin",
+        "silk amino acids",
+        "hydrolyzed collagen",
+        "hydrolyzed quinoa",
+        "oat amino acids",
+        "wheat amino acids",
+        "hydrolyzed oat protein",
+        "hydrolyzed vegetable protein"
       ]
     },
     "severity": "warning",
@@ -55,12 +83,19 @@
         "agave",
         "aloe vera",
         "sodium hyaluronate",
-        "hyaluronic acid"
+        "hyaluronic acid",
+        "panthenol",
+        "sorbitol",
+        "butylene glycol",
+        "sodium PCA",
+        "urea",
+        "lactic acid",
+        "fructose"
       ]
     },
     "condition": "humidity_above_65",
     "severity": "warning",
-    "explanation": "Humectants like {a} attract moisture from the environment. In high humidity (>65%), they pull excess water into the hair shaft, causing swelling and frizz. Cairo's summer humidity regularly exceeds 65%.",
+    "explanation": "Humectants like {a} attract moisture from the environment. In high humidity (>65%), they pull excess water into the hair shaft, causing swelling and frizz. {user_city}'s summer humidity regularly exceeds 65%.",
     "fix": "On high-humidity days, skip humectant-heavy products and use anti-humectant sealants (like oils or heavy butters) instead."
   },
   {
@@ -73,7 +108,16 @@
         "propylene glycol",
         "honey",
         "agave",
-        "sodium hyaluronate"
+        "aloe vera",
+        "sodium hyaluronate",
+        "hyaluronic acid",
+        "panthenol",
+        "sorbitol",
+        "butylene glycol",
+        "sodium PCA",
+        "urea",
+        "lactic acid",
+        "fructose"
       ]
     },
     "condition": "humidity_below_30",
@@ -90,7 +134,12 @@
         "glycolic acid",
         "lactic acid",
         "citric acid",
-        "apple cider vinegar"
+        "apple cider vinegar",
+        "salicylic acid",
+        "malic acid",
+        "tartaric acid",
+        "phytic acid",
+        "mandelic acid"
       ]
     },
     "trigger_b": {
@@ -99,7 +148,10 @@
         "sodium hydroxide",
         "calcium hydroxide",
         "baking soda",
-        "soap-based cleanser"
+        "soap-based cleanser",
+        "potassium hydroxide",
+        "guanidine hydroxide",
+        "lithium hydroxide"
       ]
     },
     "severity": "critical",
@@ -116,7 +168,16 @@
         "argan oil",
         "shea butter",
         "castor oil",
-        "jojoba oil"
+        "jojoba oil",
+        "olive oil",
+        "avocado oil",
+        "mango butter",
+        "cocoa butter",
+        "sweet almond oil",
+        "macadamia oil",
+        "grapeseed oil",
+        "sunflower seed oil",
+        "babassu oil"
       ]
     },
     "trigger_b": {
@@ -124,7 +185,10 @@
       "examples": [
         "aloe vera gel",
         "flaxseed gel",
-        "water-based leave-in"
+        "water-based leave-in",
+        "rose water",
+        "marshmallow root extract",
+        "slippery elm extract"
       ]
     },
     "severity": "warning",
@@ -140,7 +204,11 @@
         "alcohol denat",
         "isopropyl alcohol",
         "sd alcohol",
-        "ethanol"
+        "ethanol",
+        "propanol",
+        "sd alcohol 40",
+        "sd alcohol 40-b",
+        "rubbing alcohol"
       ]
     },
     "condition": "damaged_or_dry_hair",
@@ -156,7 +224,10 @@
       "examples": [
         "sodium lauryl sulfate",
         "sodium laureth sulfate",
-        "ammonium lauryl sulfate"
+        "ammonium lauryl sulfate",
+        "ammonium laureth sulfate",
+        "sodium coco sulfate",
+        "tea-lauryl sulfate"
       ]
     },
     "condition": "color_treated_hair",
@@ -173,7 +244,10 @@
         "PVP",
         "VP/VA copolymer",
         "polyquaternium-11",
-        "polyquaternium-4"
+        "polyquaternium-4",
+        "polyquaternium-69",
+        "polyacrylate-2 crosspolymer",
+        "acrylates copolymer"
       ]
     },
     "trigger_b": {
@@ -182,7 +256,10 @@
         "PVP",
         "VP/VA copolymer",
         "polyquaternium-11",
-        "polyquaternium-4"
+        "polyquaternium-4",
+        "polyquaternium-69",
+        "polyacrylate-2 crosspolymer",
+        "acrylates copolymer"
       ]
     },
     "severity": "info",
@@ -198,7 +275,8 @@
         "mineral oil",
         "paraffinum liquidum",
         "petrolatum",
-        "petroleum jelly"
+        "petroleum jelly",
+        "isoparaffin"
       ]
     },
     "severity": "warning",
@@ -225,7 +303,7 @@
     },
     "condition": "uv_index_above_7_and_no_uv_filter",
     "severity": "warning",
-    "explanation": "Cairo's UV index frequently exceeds 8. Prolonged UV exposure degrades hair proteins, fades color, and dries out the cuticle. None of your current products contain UV filters.",
+    "explanation": "Your city's UV index frequently exceeds 8. Prolonged UV exposure degrades hair proteins, fades color, and dries out the cuticle. None of your current products contain UV filters.",
     "fix": "Add a leave-in with UV filters, or physically protect hair with a hat/scarf on high-UV days."
   },
   {
@@ -237,7 +315,10 @@
         "beeswax",
         "candelilla wax",
         "carnauba wax",
-        "microcrystalline wax"
+        "microcrystalline wax",
+        "lanolin",
+        "emulsifying wax",
+        "peg-8 beeswax"
       ]
     },
     "severity": "warning",
@@ -253,7 +334,12 @@
       "examples": [
         "polyquaternium-7",
         "polyquaternium-10",
-        "guar hydroxypropyltrimonium chloride"
+        "guar hydroxypropyltrimonium chloride",
+        "behentrimonium chloride",
+        "cetrimonium chloride",
+        "behentrimonium methosulfate",
+        "polyquaternium-37",
+        "dicetyldimonium chloride"
       ]
     },
     "trigger_b": {
@@ -261,7 +347,12 @@
       "examples": [
         "polyquaternium-7",
         "polyquaternium-10",
-        "guar hydroxypropyltrimonium chloride"
+        "guar hydroxypropyltrimonium chloride",
+        "behentrimonium chloride",
+        "cetrimonium chloride",
+        "behentrimonium methosulfate",
+        "polyquaternium-37",
+        "dicetyldimonium chloride"
       ]
     },
     "severity": "info",
@@ -275,7 +366,20 @@
       "category": "protein",
       "examples": [
         "hydrolyzed keratin",
-        "keratin amino acids"
+        "hydrolyzed wheat protein",
+        "hydrolyzed silk",
+        "amino acids",
+        "collagen",
+        "hydrolyzed rice protein",
+        "hydrolyzed soy protein",
+        "keratin",
+        "silk amino acids",
+        "hydrolyzed collagen",
+        "hydrolyzed quinoa",
+        "oat amino acids",
+        "wheat amino acids",
+        "hydrolyzed oat protein",
+        "hydrolyzed vegetable protein"
       ]
     },
     "condition": "no_deep_conditioner_in_shelf",
@@ -290,7 +394,9 @@
       "category": "penetrating_oil",
       "examples": [
         "coconut oil",
-        "palm kernel oil"
+        "palm kernel oil",
+        "babassu oil",
+        "sunflower oil"
       ]
     },
     "condition": "low_porosity_hair",
@@ -306,12 +412,15 @@
       "examples": [
         "castile soap",
         "african black soap",
-        "soap bar shampoo"
+        "soap bar shampoo",
+        "saponified oils",
+        "potassium cocoate",
+        "potassium olivate"
       ]
     },
     "condition": "hard_water_area",
     "severity": "warning",
-    "explanation": "Cairo has notably hard water (high calcium and magnesium). Soap-based cleansers like {a} react with hard water minerals to form soap scum \u00e2\u20ac\u201d an insoluble film that coats your hair, causing dullness, tangles, and a waxy feel that's very hard to remove.",
+    "explanation": "{user_city} has notably hard water (high calcium and magnesium). Soap-based cleansers like {a} react with hard water minerals to form soap scum \u00e2\u20ac\u201d an insoluble film that coats your hair, causing dullness, tangles, and a waxy feel that's very hard to remove.",
     "fix": "Use a synthetic detergent (syndet) cleanser instead of soap-based ones in hard water areas. Consider a chelating shampoo once a month (look for EDTA or phytic acid) to remove mineral deposits."
   },
   {
@@ -323,7 +432,11 @@
         "shea butter",
         "mango butter",
         "cocoa butter",
-        "heavy cream conditioner"
+        "heavy cream conditioner",
+        "cupuacu butter",
+        "murumuru butter",
+        "kokum butter",
+        "tucuma butter"
       ]
     },
     "trigger_b": {
@@ -332,7 +445,11 @@
         "shea butter",
         "mango butter",
         "cocoa butter",
-        "heavy cream conditioner"
+        "heavy cream conditioner",
+        "cupuacu butter",
+        "murumuru butter",
+        "kokum butter",
+        "tucuma butter"
       ]
     },
     "severity": "warning",
@@ -347,7 +464,8 @@
       "examples": [
         "apple cider vinegar",
         "citric acid rinse",
-        "lemon juice rinse"
+        "lemon juice rinse",
+        "vinegar rinse"
       ]
     },
     "condition": "used_more_than_once_per_week",
@@ -363,7 +481,9 @@
       "examples": [
         "sodium lauryl sulfate",
         "sodium laureth sulfate",
-        "sodium C14-16 olefin sulfonate"
+        "sodium C14-16 olefin sulfonate",
+        "ammonium lauryl sulfate",
+        "sodium coco-sulfate"
       ]
     },
     "condition": "no_deep_conditioner_used_after",
@@ -379,7 +499,9 @@
       "examples": [
         "water-based leave-in spray",
         "lightweight detangler",
-        "rice water spray"
+        "rice water spray",
+        "rose water spray",
+        "aloe juice spray"
       ]
     },
     "trigger_b": {
@@ -387,7 +509,10 @@
       "examples": [
         "flaxseed gel",
         "eco styler gel",
-        "uncle funky's daughter gel"
+        "uncle funky's daughter gel",
+        "wetline xtreme gel",
+        "kinky-curly curling custard",
+        "thick styling gel"
       ]
     },
     "severity": "info",
@@ -402,7 +527,8 @@
       "examples": [
         "sea salt spray",
         "texturizing salt spray",
-        "beach wave spray"
+        "beach wave spray",
+        "magnesium sulfate spray"
       ]
     },
     "condition": "dry_or_damaged_hair",

@@ -23,7 +23,7 @@ from google import genai
 from google.genai import types
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 from firestore_helpers import log_pipeline_event, save_agent_trace
-from pipelines.model_armor import ModelArmor
+from pipelines.input_sanitizer import InputSanitizer
 
 # ── Constants ──
 MAX_ITERATIONS = 15           # Prevent infinite loops
@@ -168,11 +168,11 @@ async def run_agent_loop(
     tool_map = {func.__name__: func for func in tools}
 
     # Apply Model Armor Guardrails (Security & Governance Rubric)
-    if ModelArmor.detect_prompt_injection(goal):
+    if InputSanitizer.detect_prompt_injection(goal):
         log_pipeline_event(user_id, pipeline_name, "[SECURITY] Prompt injection detected in goal.", status="error")
         return {"status": "error", "message": "Security policy violation: Prompt Injection blocked."}
     
-    goal = ModelArmor.scan_for_pii(goal)
+    goal = InputSanitizer.scan_for_pii(goal)
 
     # Initialize message history
     contents = [
@@ -264,7 +264,7 @@ async def run_agent_loop(
             fc = fc_part.function_call
             tool_name = fc.name
             tool_args = dict(fc.args) if fc.args else {}
-            tool_args = ModelArmor.sanitize_tool_args(tool_args)
+            tool_args = InputSanitizer.sanitize_tool_args(tool_args)
 
             log_pipeline_event(
                 user_id, pipeline_name,

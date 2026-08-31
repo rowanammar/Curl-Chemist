@@ -1,6 +1,5 @@
 import httpx
 from google import genai
-from google.adk import Agent
 from config import (
     GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY,
     DEFAULT_LAT, DEFAULT_LON, WEATHER_API_URL,
@@ -182,10 +181,3 @@ Return a JSON object with:
     return json.loads(response.text)
 
 
-# Define the ADK agent
-climate_agent = Agent(
-    name="climate",
-    model=GEMINI_MODEL,
-    instruction=CLIMATE_INSTRUCTION,
-    tools=[fetch_weather, generate_routine],
-)

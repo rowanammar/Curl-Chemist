@@ -28,15 +28,16 @@ def username_exists(username: str) -> bool:
     return doc.exists
 
 
-def create_user(username: str, email: str, hair_profile: dict, location: dict, photo_url: str = None) -> dict:
+def create_user(username: str, email: str, password_hash: str, hair_profile: dict, location: dict, photo_url: str = None) -> dict:
     """
     Create a new user account.
 
     Args:
         username: unique username (used as document ID)
         email: user's email address
+        password_hash: hashed password
         hair_profile: dict with hair_type, porosity, protein_sensitivity, etc.
-        location: dict with city, latitude, longitude
+        location: dict with city, latitude, longitude, timezone
         photo_url: optional GCS URL of initial hair photo
 
     Returns:
@@ -51,6 +52,7 @@ def create_user(username: str, email: str, hair_profile: dict, location: dict, p
     user_data = {
         "username": username,
         "email": email,
+        "password_hash": password_hash,
         "created_at": datetime.now(timezone.utc),
         "location": location,
     }
@@ -193,13 +195,24 @@ def clear_all_conflicts(user_id: str):
 # Conflicts
 # ══════════════════════════════════════════════
 
+import hashlib
+
 def save_conflict(user_id: str, conflict_data: dict) -> str:
-    """Save a detected conflict."""
+    """Save a detected conflict idempotently."""
     conflict_data["detected_at"] = datetime.now(timezone.utc)
     conflict_data["resolved"] = False
-    doc_ref = get_user_ref(user_id).collection("conflicts").document()
+    
+    # Generate a deterministic ID to prevent duplicates when pipeline runs multiple times
+    rule_id = conflict_data.get("rule_id", "unknown")
+    prod_a = str(conflict_data.get("product_a_id", ""))
+    prod_b = str(conflict_data.get("product_b_id", ""))
+    
+    hash_input = f"{user_id}_{rule_id}_{prod_a}_{prod_b}"
+    conflict_hash = hashlib.md5(hash_input.encode("utf-8")).hexdigest()
+    
+    doc_ref = get_user_ref(user_id).collection("conflicts").document(conflict_hash)
     doc_ref.set(conflict_data)
-    return doc_ref.id
+    return conflict_hash
 
 
 def get_active_conflicts(user_id: str) -> list[dict]:
@@ -329,12 +342,63 @@ def get_latest_report(user_id: str) -> dict | None:
 # ══════════════════════════════════════════════
 # Pipeline Logs
 # ══════════════════════════════════════════════
+import os
+import json
+
+try:
+    from google.cloud import dlp_v2
+    dlp_client = dlp_v2.DlpServiceClient()
+except ImportError:
+    dlp_client = None
+
+def redact_pii(text: str) -> str:
+    """Uses Google Cloud DLP to redact sensitive PII (like email addresses) from logs."""
+    if not dlp_client or not text:
+        return text
+        
+    try:
+        from config import GCP_PROJECT_ID
+        parent = f"projects/{GCP_PROJECT_ID}/locations/global"
+        
+        item = {"value": text}
+        inspect_config = {
+            "info_types": [
+                {"name": "EMAIL_ADDRESS"},
+                {"name": "PHONE_NUMBER"},
+            ]
+        }
+        deidentify_config = {
+            "info_type_transformations": {
+                "transformations": [
+                    {
+                        "primitive_transformation": {
+                            "replace_with_info_type_config": {}
+                        }
+                    }
+                ]
+            }
+        }
+        
+        response = dlp_client.deidentify_content(
+            request={
+                "parent": parent,
+                "deidentify_config": deidentify_config,
+                "inspect_config": inspect_config,
+                "item": item,
+            }
+        )
+        return response.item.value
+    except Exception as e:
+        print(f"DLP redaction failed: {e}")
+        return text
+
 
 def log_pipeline_event(user_id: str, pipeline_name: str, message: str, status: str = "info"):
     """
     Log a pipeline execution event.
     These appear in the dashboard's "Pipeline Execution Log" panel.
     """
+    message = redact_pii(message)
     get_user_ref(user_id).collection("pipeline_logs").add({
         "pipeline": pipeline_name,
         "message": message,
@@ -367,6 +431,14 @@ def save_agent_trace(user_id: str, pipeline_name: str, trace_data: list):
         pipeline_name: Which pipeline generated this trace
         trace_data: List of trace events (thoughts, tool_calls, results, errors)
     """
+    try:
+        # Redact the entire trace stringified to catch PII in tool arguments or thoughts
+        trace_str = json.dumps(trace_data)
+        redacted_str = redact_pii(trace_str)
+        trace_data = json.loads(redacted_str)
+    except Exception as e:
+        print(f"Failed to redact trace data: {e}")
+        
     trace_doc = {
         "pipeline": pipeline_name,
         "trace": trace_data,
@@ -395,15 +467,17 @@ def get_user_profile(user_id: str) -> dict | None:
 
 
 def get_user_location(user_id: str) -> dict:
-    """Get the user's location (lat/lon/city). Falls back to defaults."""
+    """Get the user's location (lat/lon/city/timezone). Falls back to defaults."""
     from config import DEFAULT_LAT, DEFAULT_LON, DEFAULT_CITY
     user_doc = db.collection("users").document(user_id).get()
     if user_doc.exists:
         data = user_doc.to_dict()
         location = data.get("location", {})
         if location.get("latitude") and location.get("longitude"):
+            # Ensure timezone has a fallback
+            location.setdefault("timezone", "UTC")
             return location
-    return {"latitude": DEFAULT_LAT, "longitude": DEFAULT_LON, "city": DEFAULT_CITY}
+    return {"latitude": DEFAULT_LAT, "longitude": DEFAULT_LON, "city": DEFAULT_CITY, "timezone": "UTC"}
 
 
 def get_user_email(user_id: str) -> str:

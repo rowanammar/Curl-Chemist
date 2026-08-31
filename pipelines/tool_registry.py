@@ -98,7 +98,7 @@ async def analyze_conflicts(user_id: str) -> list:
     products = get_all_products(user_id)
     if not products:
         return []
-    return await check_product_conflicts(products)
+    return await check_product_conflicts(products, user_id=user_id)
 
 
 def save_conflict_to_db(user_id: str, conflict_json: str) -> dict:
@@ -179,7 +179,7 @@ def get_user_hair_profile(user_id: str) -> dict:
     return profile
 
 
-def detect_climate_conflicts(products_json: str, humidity: float, uv_index: float) -> list:
+def detect_climate_conflicts(user_id: str, humidity: float, uv_index: float) -> list:
     """Check for weather-dependent ingredient conflicts.
 
     Use this tool AFTER fetching weather to identify products that
@@ -187,7 +187,7 @@ def detect_climate_conflicts(products_json: str, humidity: float, uv_index: floa
     in high humidity, lack of UV protection on high UV days).
 
     Args:
-        products_json: JSON string of the user's product shelf
+        user_id: The user's unique identifier
         humidity: Tomorrow's humidity percentage
         uv_index: Tomorrow's UV index
 
@@ -195,34 +195,33 @@ def detect_climate_conflicts(products_json: str, humidity: float, uv_index: floa
         List of climate conflict dicts with product_name, ingredient,
         condition, explanation, and fix.
     """
-    products = json.loads(products_json) if isinstance(products_json, str) else products_json
-    return check_climate_conflicts(products, humidity, uv_index)
+    products = get_all_products(user_id)
+    location = get_user_location(user_id)
+    user_city = location.get("city", "their city/country")
+    return check_climate_conflicts(products, humidity, uv_index, user_city)
 
 
 async def generate_hair_routine(
-    products_json: str,
+    user_id: str,
     weather_json: str,
-    profile_json: str,
     climate_conflicts_json: str = "[]",
 ) -> dict:
     """Generate a personalized daily hair care routine.
 
-    Use this tool after gathering weather, products, profile, and
-    climate conflicts. Produces a step-by-step routine using only
-    products from the user's shelf.
+    Use this tool after gathering weather and climate conflicts. 
+    Produces a step-by-step routine using only products from the user's shelf.
 
     Args:
-        products_json: JSON string of available products
+        user_id: The user's unique identifier
         weather_json: JSON string of tomorrow's weather
-        profile_json: JSON string of user's hair profile
         climate_conflicts_json: JSON string of climate conflicts to avoid
 
     Returns:
         dict with summary, is_wash_day, steps array, and climate_notes.
     """
-    products = json.loads(products_json) if isinstance(products_json, str) else products_json
+    products = get_all_products(user_id)
+    profile = get_user_profile(user_id) or {}
     weather = json.loads(weather_json) if isinstance(weather_json, str) else weather_json
-    profile = json.loads(profile_json) if isinstance(profile_json, str) else profile_json
     climate_conflicts = json.loads(climate_conflicts_json) if isinstance(climate_conflicts_json, str) else climate_conflicts_json
     return await generate_routine(products, weather, profile, climate_conflicts=climate_conflicts)
 

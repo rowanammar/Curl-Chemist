@@ -19,7 +19,6 @@ from pathlib import Path
 # pyrefly: ignore [missing-import]
 from google import genai
 from google.genai import types
-from google.adk import Agent
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 # Load conflict rules once at startup
@@ -41,49 +40,154 @@ IMPORTANT RULES:
 """
 
 
-async def check_product_conflicts(products: list[dict]) -> list[dict]:
+def check_condition(condition: str, products: list[dict], profile: dict = None) -> bool:
+    if not condition:
+        return True
+    
+    profile = profile or {}
+
+    if condition == "no_sulfate_cleanser_in_shelf":
+        sulfate_examples = ["sodium lauryl sulfate", "sodium laureth sulfate", "ammonium lauryl sulfate", "ammonium laureth sulfate", "sodium coco sulfate", "tea-lauryl sulfate"]
+        for p in products:
+            for ing in p.get("ingredients", []):
+                name = ing.get("name", "").lower()
+                inci = ing.get("inci", "").lower()
+                if any(s in name or s in inci for s in sulfate_examples):
+                    return False
+        return True
+
+    if condition == "no_deep_conditioner_in_shelf":
+        for p in products:
+            ptype = p.get("product_type", "").lower()
+            name = p.get("product_name", "").lower()
+            if "deep conditioner" in ptype or "mask" in ptype or "treatment" in ptype:
+                return False
+        return True
+        
+    if condition == "no_heat_protectant_in_shelf":
+        for p in products:
+            ptype = p.get("product_type", "").lower()
+            if "heat protectant" in ptype or "protectant" in ptype:
+                return False
+        return True
+    
+    if condition == "damaged_or_dry_hair":
+        goals = [g.lower() for g in profile.get("goals", [])]
+        return "repair damage" in goals or "add moisture" in goals or any("damaged" in g for g in goals)
+
+    if condition == "color_treated_hair":
+        color_history = str(profile.get("color_history", "")).lower()
+        return "yes" in color_history or "dyed" in color_history or "bleached" in color_history or "color" in color_history
+
+    if condition == "low_porosity_hair":
+        return str(profile.get("porosity", "")).lower() == "low"
+    
+    return True
+
+def _product_has_trigger(product: dict, trigger: dict) -> str | None:
+    for ingredient in product.get("ingredients", []):
+        match = _ingredient_matches_category(ingredient, trigger)
+        if match:
+            return match
+    return None
+
+async def check_product_conflicts(products: list[dict], user_id: str = None) -> list[dict]:
     """
-    Passes the entire shelf + the conflict rule concepts to Gemini to find holistic, non-hallucinated conflicts.
+    Evaluates the shelf programmatically against conflict_rules.json to guarantee 
+    consistency and reproducibility, then uses Gemini to intelligently consolidate.
     """
     if len(products) == 0:
         return []
 
-    # Simplify product list to text for prompt
-    shelf_text = "USER'S SHELF:\n"
-    for p in products:
-        shelf_text += f"- Product ID: {p['id']}, Name: {p.get('product_name', 'Unknown')}\n"
-        shelf_text += f"  Ingredients: {', '.join([i.get('inci', i.get('name', '')) for i in p.get('ingredients', [])])}\n\n"
+    from firestore_helpers import get_user_profile
+    profile = get_user_profile(user_id) if user_id else {}
 
-    # Load rules text for context, filtering out climate rules to avoid LLM weather hallucinations
-    filtered_rules = [r for r in CONFLICT_RULES if r.get("type") != "climate_interaction"]
-    rules_text = json.dumps(filtered_rules, indent=2)
+    raw_conflicts = []
+    seen = set()
+    
+    # Filter out climate rules, they are evaluated separately
+    rules = [r for r in CONFLICT_RULES if r.get("type") != "climate_interaction"]
+    
+    for rule in rules:
+        trigger_a = rule.get("trigger_a")
+        trigger_b = rule.get("trigger_b")
+        condition = rule.get("condition")
+        
+        if trigger_a and trigger_b:
+            for i, pA in enumerate(products):
+                match_a = _product_has_trigger(pA, trigger_a)
+                if not match_a: continue
+                
+                for j, pB in enumerate(products):
+                    if i == j: continue
+                    match_b = _product_has_trigger(pB, trigger_b)
+                    if not match_b: continue
+                    
+                    if not check_condition(condition, products, profile):
+                        continue
+                        
+                    # Deduplicate by sorting IDs
+                    id_pair = tuple(sorted([pA["id"], pB["id"]]))
+                    uniq_key = (rule["id"], id_pair)
+                    if uniq_key in seen:
+                        continue
+                    seen.add(uniq_key)
+                        
+                    raw_conflicts.append({
+                        "product_a_id": pA["id"],
+                        "product_a_name": pA.get("product_name", "Unknown"),
+                        "product_b_id": pB["id"],
+                        "product_b_name": pB.get("product_name", "Unknown"),
+                        "rule_id": rule["id"],
+                        "severity": rule["severity"],
+                        "explanation": rule["explanation"].replace("{a}", match_a).replace("{b}", match_b),
+                        "fix": rule["fix"]
+                    })
+        elif trigger_a:
+            for pA in products:
+                match_a = _product_has_trigger(pA, trigger_a)
+                if not match_a: continue
+                
+                if not check_condition(condition, products, profile):
+                    continue
+                    
+                uniq_key = (rule["id"], pA["id"])
+                if uniq_key in seen:
+                    continue
+                seen.add(uniq_key)
+                    
+                raw_conflicts.append({
+                    "product_a_id": pA["id"],
+                    "product_a_name": pA.get("product_name", "Unknown"),
+                    "product_b_id": "",
+                    "product_b_name": "",
+                    "rule_id": rule["id"],
+                    "severity": rule["severity"],
+                    "explanation": rule["explanation"].replace("{a}", match_a),
+                    "fix": rule["fix"]
+                })
+                
+    if not raw_conflicts:
+        return []
 
-    prompt = f"""You are a Master Cosmetic Chemist. Here is the user's product shelf, and a rulebook of scientifically proven conflict concepts (like Silicone Buildup, Protein Overload, etc).
+    # Use Gemini to deduplicate and resolve contradictions intelligently
+    prompt = f"""You are a Master Cosmetic Chemist. I have run a deterministic rule engine against the user's shelf and found these raw conflicts:
+    
+{json.dumps(raw_conflicts, indent=2)}
 
-1. RULEBOOK STRICTNESS: You ONLY flag conflicts that are fundamentally based on the concepts in the provided rulebook. DO NOT invent new conflict concepts that have no basis in the rules.
-2. INTELLIGENT APPLICATION: You are an agent, not a dumb script. Apply the rules intelligently based on their underlying chemistry. For example, if a rule states that a sulfate-free cleanser cannot wash out heavy silicones, you must logically deduce that having NO cleanser at all will cause the exact same (or worse) silicone buildup, and flag it under that rule.
-3. Apply common sense. Trace Citric Acid is a pH adjuster, not a chemical peel (ignore).
-4. MITIGATION EXCEPTION: If a conflict rule says Product A cannot be removed by Product B, but the user ALSO has a mitigating product on their shelf (like a clarifying shampoo with sulfates), DO NOT flag the conflict. The user already has the solution on their shelf!
-5. ABSENCE CONDITION EVALUATION: If a rule triggers on the absence of a product, you must carefully verify that NO product on the entire shelf can act as that product before flagging it.
-6. EXCLUSIONS: DO NOT flag conflicts based on weather/climate (like humidity/UV). DO NOT flag conflicts based on hair porosity/type unless explicitly provided.
-7. CONSOLIDATION: If multiple products trigger the exact same absence condition (e.g. multiple silicones missing a clarifying shampoo), group them into a SINGLE conflict. List all affected products in `product_a_name` (e.g. "Gliss Mask, Hydrating Conditioner") and leave `product_b_name` empty. Do not flag them multiple times.
-8. NECESSITY DEDUPLICATION: If a single product triggers multiple different rules that all require the EXACT SAME missing product type (e.g. it has Sulfates AND Keratin, both requiring a deep conditioner), COMBINE them into a single conflict. Do NOT output multiple conflicts for the same product if the required fix is identical.
-
-{shelf_text}
-
-RULEBOOK:
-{rules_text}
-
-Return a JSON array of conflict objects. Each object must have exactly these keys:
-- "product_a_id": string (the ID of the first conflicting product)
-- "product_a_name": string (the name of the first conflicting product)
-- "product_b_id": string (the ID of the second conflicting product, or empty if it's a shelf-wide issue)
-- "product_b_name": string (the name of the second conflicting product, or empty)
-- "severity": string (either "critical", "warning", or "info")
-- "explanation": string (A personalized explanation mentioning specific ingredients)
+Your job is to CONSOLIDATE, DEDUPLICATE, and RESOLVE CONTRADICTIONS to produce a clean, finalized list of conflicts for the user.
+1. CONSOLIDATION (CRITICAL): Do NOT output the same warning multiple times for different products. If multiple products trigger the exact same rule (e.g. 3 products have drying alcohol, or 3 products clash with the alkaline shampoo), COMBINE them into a SINGLE conflict. List all affected products separated by commas in `product_a_name` and `product_a_id` (e.g. "Mask, Gel, Conditioner"). 
+2. RESOLVE CONTRADICTIONS: If `sulfate_color_treated` is flagged (because they have sulfates) BUT they also have non-water-soluble silicones on their shelf (which REQUIRE sulfates to wash out, meaning `silicone_buildup` would trigger without them), you must prioritize the silicone issue or explain the trade-off intelligently in a single combined conflict. Do not give contradictory advice.
+3. OUTPUT FORMAT: Return a JSON array of conflict objects. Each object must have exactly these keys:
+- "product_a_id": string (comma-separated IDs if consolidated)
+- "product_a_name": string (comma-separated names if consolidated)
+- "product_b_id": string (or empty)
+- "product_b_name": string (or empty)
+- "rule_id": string
+- "severity": string ("critical", "warning", or "info")
+- "explanation": string (A personalized, consolidated explanation)
 - "fix": string (Actionable advice to fix it)
 """
-
     try:
         response = await client.aio.models.generate_content(
             model=GEMINI_MODEL,
@@ -95,8 +199,8 @@ Return a JSON array of conflict objects. Each object must have exactly these key
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"Gemini holistic conflict detection failed: {e}")
-        return []
+        print(f"Gemini conflict consolidation failed: {e}")
+        return raw_conflicts
 
 
 def _ingredient_matches_category(ingredient: dict, trigger: dict) -> str | None:
@@ -112,7 +216,7 @@ def _ingredient_matches_category(ingredient: dict, trigger: dict) -> str | None:
     return None
 
 def check_climate_conflicts(
-    products: list[dict], humidity: float, uv_index: float
+    products: list[dict], humidity: float, uv_index: float, user_city: str
 ) -> list[dict]:
     """
     Check for climate-dependent conflicts.
@@ -149,17 +253,9 @@ def check_climate_conflicts(
                         "product_id": product["id"],
                         "ingredient": match,
                         "condition": condition,
-                        "explanation": rule["explanation"].replace("{a}", match),
-                        "fix": rule["fix"],
+                        "explanation": rule["explanation"].replace("{a}", match).format(user_city=user_city),
+                        "fix": rule["fix"].format(user_city=user_city) if "{user_city}" in rule.get("fix", "") else rule["fix"],
                     })
 
     return climate_conflicts
-
-
-# Define the ADK agent
-chemist_agent = Agent(
-    name="chemist",
-    model=GEMINI_MODEL,
-    instruction=CHEMIST_INSTRUCTION,
-    tools=[check_product_conflicts, check_climate_conflicts],
-)
+

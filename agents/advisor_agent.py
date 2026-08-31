@@ -17,11 +17,13 @@ from typing import Dict, Any, List
 from google import genai
 from google.genai import types
 from config import GEMINI_MODEL, GEMMA_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
+from firestore_helpers import log_pipeline_event
 
-def get_client() -> genai.Client:
+def get_client(force_region: str = None) -> genai.Client:
     if GEMINI_API_KEY:
         return genai.Client(api_key=GEMINI_API_KEY)
-    return genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+    loc = force_region or GCP_REGION
+    return genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=loc)
 
 
 # ══════════════════════════════════════════════
@@ -81,7 +83,7 @@ Return ONLY a JSON object with keys: "intent", "confidence" (0.0-1.0), "reason" 
 # ══════════════════════════════════════════════
 
 async def generate_advisor_response(
-    username: str, 
+    user_id: str, 
     user_context: Dict[str, Any], 
     chat_history: List[Dict[str, str]], 
     user_message: str
@@ -95,17 +97,24 @@ async def generate_advisor_response(
     3. If hair-care or greeting → route to Gemini 3.5
     """
     client = get_client()
+    gemma_client = get_client(force_region="us-central1")
 
     # ── Step 1: Gemma Intent Router ──
-    intent_result = await classify_intent(client, user_message)
+    intent_result = await classify_intent(gemma_client, user_message)
     intent = intent_result.get("intent", "unclear")
     confidence = intent_result.get("confidence", 0.0)
+    reason = intent_result.get("reason", "")
 
     # Log the intent classification for observability
-    print(f"[GEMMA ROUTER] intent={intent}, confidence={confidence}, reason={intent_result.get('reason', '')}")
+    log_pipeline_event(
+        user_id, "advisor_chat",
+        f"[GEMMA ROUTER] intent={intent}, confidence={confidence}, reason={reason}",
+        status="info"
+    )
 
     # ── Step 2: Gate off-topic messages ──
     if intent == "off_topic" and confidence >= 0.8:
+        log_pipeline_event(user_id, "advisor_chat", f"Gated off-topic message: {user_message[:50]}...", status="warning")
         return (
             "I appreciate the question, but I'm specifically designed to help with "
             "**hair care, styling, product analysis, and beauty routines**. "
@@ -122,7 +131,7 @@ async def generate_advisor_response(
 
     context_str = f"""
     --- USER CONTEXT ---
-    Username: {username}
+    User ID: {user_id}
     Hair Type: {profile.get('hair_type', 'Unknown')}
     Porosity: {profile.get('porosity', 'Unknown')}
     Protein Sensitivity: {profile.get('protein_sensitivity', 'Unknown')}
@@ -160,6 +169,7 @@ STRICT BOUNDARIES & RULES:
 3. LOCALITY RULE: When recommending any products (shampoo, dye, styling, etc.), you MUST ONLY recommend products that are widely and easily available in the user's location ({profile.get('location', {}).get('city', 'Unknown')}). For example, if they are in Egypt, do not recommend US-only stores like Ulta, Target, or Sally Beauty. Suggest local pharmacies, local brands, or international brands widely available in their specific country.
 4. Always reference the user's specific hair profile, shelf products, or wash history if relevant.
 5. Use markdown (bullet points, bold text). Do not use emojis unless absolutely necessary.
+6. REAL PRODUCTS ONLY RULE: You MUST ONLY recommend real, verified products that actually exist in the market. DO NOT hallucinate, invent, or generate fake product names. If you are unsure if a product exists, do not recommend it.
 """
 
     # Format chat history for Gemini
@@ -182,7 +192,8 @@ STRICT BOUNDARIES & RULES:
             contents=contents,
             config=config,
         )
+        log_pipeline_event(user_id, "advisor_chat", "Generated Gemini 3.5 response", status="success")
         return response.text
     except Exception as e:
-        print(f"Error in advisor agent: {e}")
+        log_pipeline_event(user_id, "advisor_chat", f"Error generating response: {e}", status="error")
         return "I'm having a little trouble connecting to my lab right now. Please try asking again in a moment."

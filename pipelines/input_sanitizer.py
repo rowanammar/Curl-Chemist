@@ -6,7 +6,7 @@ tool poisoning, and PII leaks.
 import re
 import logging
 
-class ModelArmor:
+class InputSanitizer:
     @staticmethod
     def scan_for_pii(text: str) -> str:
         """Redacts basic PII (Email, Phone) before it hits the LLM."""
@@ -39,7 +39,7 @@ class ModelArmor:
         
         for pattern in injection_patterns:
             if pattern in text_lower:
-                logging.warning(f"[ModelArmor] Prompt Injection detected: '{pattern}'")
+                logging.warning(f"[InputSanitizer] Prompt Injection detected: '{pattern}'")
                 return True
         return False
         

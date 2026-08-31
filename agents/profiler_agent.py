@@ -10,7 +10,6 @@ WHAT THIS AGENT DOES:
 """
 
 from google import genai
-from google.adk import Agent
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
@@ -132,10 +131,3 @@ def compute_trends(history: list[dict]) -> dict:
     }
 
 
-# Define the ADK agent
-profiler_agent = Agent(
-    name="profiler",
-    model=GEMINI_MODEL,
-    instruction=PROFILER_INSTRUCTION,
-    tools=[analyze_hair_photo, compute_trends],
-)

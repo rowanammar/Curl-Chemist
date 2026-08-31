@@ -107,7 +107,7 @@
   /* Z-index scale */
   --z-sidebar: 20;
   --z-overlay: 30;
-  --z-toast: 50;
+  --z-toast: 9999;
   --z-modal: 40;
 }
 
@@ -1854,13 +1854,6 @@ textarea.form-input {
 }
 .sidebar-logout-btn:hover { color: var(--color-danger); }
 
-/* Mobile Header (Hidden on Desktop) */
-.mobile-header {
-  display: none;
-}
-.sidebar-overlay {
-  display: none;
-}
 
 
 /* ═══════════════════════════════════════════════════
@@ -1963,46 +1956,6 @@ textarea.form-input {
   text-align: center;
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
-}
-
-/* ═══════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
-   ═══════════════════════════════════════════════════ */
-.toast-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.toast {
-  padding: 12px 20px;
-  background-color: var(--color-card);
-  color: var(--color-text);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-toast);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  border-left: 4px solid var(--color-primary);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.toast.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.toast-error {
-  border-left-color: var(--color-danger);
-}
-
-.toast-success {
-  border-left-color: var(--color-success);
 }
 
 /* ═══════════════════════════════════════════════════

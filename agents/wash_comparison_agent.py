@@ -16,7 +16,6 @@ accounts for that.
 import json
 from google import genai
 from google.genai import types
-from google.adk import Agent
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(
@@ -268,10 +267,3 @@ Return JSON with:
         return await compare_wash_days(current_entry, previous_entries_with_photos, user_profile)
 
 
-# Define the ADK agent
-wash_comparison_agent = Agent(
-    name="wash_comparison",
-    model=GEMINI_MODEL,
-    instruction=COMPARISON_INSTRUCTION,
-    tools=[compare_wash_days, compare_wash_days_with_photos],
-)

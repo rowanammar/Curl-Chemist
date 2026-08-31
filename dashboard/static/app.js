@@ -53,8 +53,9 @@ function initApp() {
 
 async function apiFetch(url, options = {}) {
   if (!options.headers) options.headers = {};
-  if (currentUser) {
-    options.headers['X-User-Id'] = currentUser.username;
+  const token = localStorage.getItem('curlChemistToken');
+  if (token) {
+    options.headers['Authorization'] = `Bearer ${token}`;
   }
   return fetch(url, options);
 }
@@ -87,7 +88,8 @@ function showSignupFlow() {
 
 async function handleLogin() {
   const username = document.getElementById('login-username').value.trim();
-  if (!username) return;
+  const password = document.getElementById('login-password') ? document.getElementById('login-password').value : '';
+  if (!username || !password) return;
   
   const btn = document.getElementById('btn-login');
   btn.disabled = true;
@@ -97,13 +99,14 @@ async function handleLogin() {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username })
+      body: JSON.stringify({ username, password })
     });
     const data = await res.json();
     
     if (data.status === 'success') {
       currentUser = data.user;
       localStorage.setItem('curlChemistUser', JSON.stringify(currentUser));
+      localStorage.setItem('curlChemistToken', data.token);
       updateUserDisplay();
       hideAuthOverlay();
       navigateTo('shelf');
@@ -123,6 +126,7 @@ async function handleLogin() {
 function handleLogout() {
   currentUser = null;
   localStorage.removeItem('curlChemistUser');
+  localStorage.removeItem('curlChemistToken');
   dashboardData = { products: [], conflicts: [], routine: null, pipeline_logs: [], wash_history: [] };
   
   // Immediately clear UI to prevent flashing old data for the next user
@@ -147,6 +151,7 @@ function handleLogout() {
 
   showAuthOverlay();
   document.getElementById('login-username').value = '';
+  if(document.getElementById('login-password')) document.getElementById('login-password').value = '';
 }
 
 function updateUserDisplay() {
@@ -262,7 +267,8 @@ window.selectCity = function(cityData) {
   selectedLocation = {
     city: cityData.name,
     latitude: cityData.latitude,
-    longitude: cityData.longitude
+    longitude: cityData.longitude,
+    timezone: cityData.timezone || 'UTC'
   };
   document.getElementById('city-results').innerHTML = '';
   document.getElementById('signup-city').value = cityData.name;
@@ -279,6 +285,7 @@ setupUploadZone('signup-photo-zone', 'signup-photo-input', 'signup-photo-preview
 async function handleSignup() {
   const username = document.getElementById('signup-username').value.trim();
   const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password') ? document.getElementById('signup-password').value : 'temp-password';
   const porosity = document.getElementById('signup-porosity').value;
   const protein = document.getElementById('signup-protein').value;
   const thickness = document.getElementById('signup-thickness').value;
@@ -287,6 +294,7 @@ async function handleSignup() {
   const formData = new FormData();
   formData.append('username', username);
   formData.append('email', email);
+  formData.append('password', password);
   formData.append('hair_type', selectedHairType);
   formData.append('porosity', porosity);
   formData.append('protein_sensitivity', protein);
@@ -298,6 +306,7 @@ async function handleSignup() {
     formData.append('city', selectedLocation.city);
     formData.append('latitude', selectedLocation.latitude);
     formData.append('longitude', selectedLocation.longitude);
+    formData.append('timezone', selectedLocation.timezone || 'UTC');
   }
   
   const photoInput = document.getElementById('signup-photo-input');
@@ -322,6 +331,7 @@ async function handleSignup() {
       // Auto-login
       currentUser = { username: data.username };
       localStorage.setItem('curlChemistUser', JSON.stringify(currentUser));
+      localStorage.setItem('curlChemistToken', data.token);
       updateUserDisplay();
       hideAuthOverlay();
       navigateTo('shelf');
@@ -644,6 +654,7 @@ async function confirmProduct() {
     }
     showToast("Agent is reviewing your shelf. A Shopping Alert email will be sent if necessities are missing.", "info");
 
+    // The analyzing state is now synced via /api/dashboard-data polling.
     cancelScan();
     fetchDashboardData();
     navigateTo('shelf');
@@ -809,6 +820,10 @@ async function fetchDashboardData() {
     const response = await apiFetch('/api/dashboard-data');
     const data = await response.json();
     dashboardData = data;
+    
+    // Sync UI state with backend analyzing flag
+    window.isAnalyzingConflicts = data.is_analyzing || false;
+    
     renderProducts(data.products);
     renderRoutine(data.routine);
     renderConflicts(data.conflicts);
@@ -914,6 +929,17 @@ function renderRoutine(routine) {
 function renderConflicts(conflicts) {
   const list = document.getElementById('conflicts-list');
   const empty = document.getElementById('conflicts-empty');
+  
+  if (window.isAnalyzingConflicts) {
+    empty.style.display = 'none';
+    list.innerHTML = `
+      <div class="empty-state" style="padding: 40px 0;">
+        <div class="empty-state-icon">🧪</div>
+        <div class="empty-state-text">The Agent is analyzing your shelf for chemical conflicts...</div>
+      </div>`;
+    return;
+  }
+  
   if (!conflicts || conflicts.length === 0) {
     list.innerHTML = '';
     empty.style.display = '';
@@ -1085,21 +1111,7 @@ function downloadIcs(content, filename) {
 // ═══════════════════════════════════════════
 // Toast Notifications
 // ═══════════════════════════════════════════
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  container.appendChild(toast);
-  
-  setTimeout(() => toast.classList.add('show'), 10);
-  
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
+
 
 // ═══════════════════════════════════════════
 // Advisor Chat

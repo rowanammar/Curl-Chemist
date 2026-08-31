@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Reads .env file during local development
 
+IS_DEV = os.getenv("IS_DEV", "true").lower() == "true"
+
 # ── Google Cloud ──
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "curl-chemist")
 # Aligning default with your local .env

@@ -103,13 +103,25 @@ END:VCALENDAR"""
 
     # Call real Google Calendar API
     user_email = get_user_email(user_id)
-    api_res = create_calendar_event(
-        attendee_email=user_email,
-        title=event_title,
-        description=event_description,
-        start_time=event_date.isoformat(),
-        end_time=event_end.isoformat(),
-    )
+    try:
+        api_res = create_calendar_event(
+            attendee_email=user_email,
+            title=event_title,
+            description=event_description,
+            start_time=event_date.isoformat(),
+            end_time=event_end.isoformat(),
+        )
+    except Exception as e:
+        log_pipeline_event(
+            user_id, "external_action",
+            f"[CALENDAR] Failed to schedule '{event_title}' via Google API: {e}",
+            status="error",
+        )
+        return {
+            "status": "failed",
+            "event_id": event_uid,
+            "message": f"Failed to schedule calendar event: {e}"
+        }
 
     # Log as pipeline event for observability
     log_pipeline_event(
@@ -198,7 +210,19 @@ def dispatch_shopping_alert(
 
     # Call real Gmail API
     subject = f"🚨 Curl Chemist Alert: {alert_title}"
-    api_res = send_gmail(user_email, subject, email_html)
+    try:
+        api_res = send_gmail(user_email, subject, email_html)
+    except Exception as e:
+        log_pipeline_event(
+            user_id, "external_action",
+            f"[SHOPPING ALERT] Failed to dispatch email to {user_email}: {e}",
+            status="error",
+        )
+        return {
+            "status": "failed",
+            "alert_id": alert_id,
+            "message": f"Failed to send email alert: {e}",
+        }
 
     # Log as pipeline event for observability
     log_pipeline_event(

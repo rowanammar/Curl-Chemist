@@ -18,7 +18,6 @@ import json
 import base64
 from google import genai
 from google.genai import types
-from google.adk import Agent
 from config import GEMINI_MODEL, GCP_PROJECT_ID, GCP_REGION, GEMINI_API_KEY
 
 # Initialize the Gemini client via Vertex AI
@@ -220,10 +219,3 @@ async def scan_product_label(image_uri: str) -> dict:
     return json.loads(response.text)
 
 
-# Define the ADK agent
-scanner_agent = Agent(
-    name="scanner",
-    model=GEMINI_MODEL,
-    instruction=SCANNER_INSTRUCTION,
-    tools=[scan_product_label, scan_product_from_bytes, scan_product_by_name, scan_product_from_text],
-)

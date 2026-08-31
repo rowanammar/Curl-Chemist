@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 
 from pipelines.orchestrator import run_agent_loop
 from pipelines.tool_registry import NIGHTLY_ROUTINE_TOOLS
-from firestore_helpers import log_pipeline_event
+from firestore_helpers import log_pipeline_event, get_user_location
 
 
 async def run_nightly_routine_pipeline(user_id: str):
@@ -38,9 +38,15 @@ async def run_nightly_routine_pipeline(user_id: str):
 
     log_pipeline_event(user_id, pipeline_name, "Pipeline triggered")
 
-    # Calculate tomorrow's date for the agent
-    cairo_tz = ZoneInfo("Africa/Cairo")
-    tomorrow = datetime.now(cairo_tz) + timedelta(days=1)
+    # Calculate tomorrow's date for the agent using user's timezone
+    location = get_user_location(user_id)
+    user_tz_str = location.get("timezone", "UTC")
+    try:
+        user_tz = ZoneInfo(user_tz_str)
+    except Exception:
+        user_tz = ZoneInfo("UTC")
+        
+    tomorrow = datetime.now(user_tz) + timedelta(days=1)
     date_str = tomorrow.strftime("%Y-%m-%d")
 
     goal = f"""You are the Nightly Routine Agent for Curl Chemist. Generate tomorrow's personalized hair care routine.
@@ -50,16 +56,12 @@ TARGET DATE: {date_str}
 
 YOUR MISSION (execute these steps using the tools available to you):
 1. Use fetch_weather_forecast to get tomorrow's weather for the user's location (user_id="{user_id}").
-2. Use get_shelf to load all products on the user's shelf (user_id="{user_id}").
+2. Use get_shelf to verify the user has products on their shelf (user_id="{user_id}").
    - If the shelf is empty, stop and report that no routine can be generated.
 3. Use get_user_hair_profile to load the user's hair profile (user_id="{user_id}").
-4. Use detect_climate_conflicts to check for weather-dependent conflicts. Pass the products list (as JSON string), the humidity value, and the UV index from the weather data.
+4. Use detect_climate_conflicts to check for weather-dependent conflicts. Pass user_id="{user_id}", the humidity value, and the UV index from the weather data.
 5. If any climate conflicts are found, use save_conflict_to_db to save each one (user_id="{user_id}").
-6. Use generate_hair_routine to create a personalized routine. Pass all gathered data as JSON strings:
-   - products_json: the product shelf
-   - weather_json: the weather data
-   - profile_json: the hair profile
-   - climate_conflicts_json: any climate conflicts found
+6. Use generate_hair_routine to create a personalized routine. Pass user_id="{user_id}", weather_json (the weather data), and climate_conflicts_json.
 7. Use save_routine_to_db to persist the routine (user_id="{user_id}", date_str="{date_str}").
 8. CALENDAR CHECK: Review the generated routine. If it includes a wash day (is_wash_day=true) or any step that takes more than 10 minutes (like deep conditioning, protein treatment, or hair mask), use schedule_calendar_event to block time on the user's calendar.
    - Set event_title to something like "Wash Day Routine" or "Deep Conditioning Treatment"

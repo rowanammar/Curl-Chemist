@@ -18,8 +18,9 @@ from fastapi.encoders import jsonable_encoder
 from typing import Optional
 
 from config import PHOTOS_BUCKET, GCP_PROJECT_ID, GEOCODING_API_URL
+from auth import hash_password, verify_password, create_access_token, decode_access_token
 from firestore_helpers import (
-    get_all_products, get_active_conflicts, get_latest_routine,
+    db, get_all_products, get_active_conflicts, get_latest_routine,
     get_recent_pipeline_logs, get_latest_report, get_user_profile,
     get_recent_wash_history, save_product, save_conflict,
     delete_product, clear_all_conflicts, save_wash_entry,
@@ -39,7 +40,7 @@ from agents.profiler_agent import analyze_hair_photo
 from agents.wash_comparison_agent import compare_wash_days_with_photos
 from agents.advisor_agent import generate_advisor_response
 from pipelines.nightly_routine import run_nightly_routine_pipeline
-from pipelines.shelf_reanalysis import run_shelf_reanalysis_pipeline, run_shelf_check_pipeline
+from pipelines.shelf_reanalysis import run_shelf_check_pipeline
 from pipelines.weekly_health import run_weekly_health_pipeline
 
 app = FastAPI(title="Curl Chemist", version="2.0.0")
@@ -68,14 +69,29 @@ async def agent_gateway_middleware(request: Request, call_next):
     if path == "/" or path.startswith("/static") or path.startswith("/api/auth") or path == "/favicon.ico":
         return await call_next(request)
         
-    # Cloud Scheduler / PubSub endpoints use different auth via GCP IAM in production
-    # But for API endpoints, enforce X-User-Id
+    # Check internal Cloud Scheduler / PubSub Headers for pipeline triggers
+    if path.startswith("/pipelines/") or path.startswith("/pubsub/"):
+        if request.headers.get("X-CloudScheduler") == "true" or request.headers.get("X-PubSub-Trigger") == "true":
+            return await call_next(request)
+
+    # Check JWT Token
     if path.startswith("/api/") or path.startswith("/pipelines/"):
-        user_id = request.headers.get("x-user-id")
-        if not user_id and path != "/pipelines/shelf-reanalysis": # PubSub uses envelope
+        auth_header = request.headers.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=401,
-                content={"status": "error", "message": "Agent Gateway: Zero-Trust Policy Violation - Missing Identity"}
+                content={"status": "error", "message": "Agent Gateway: Zero-Trust Policy Violation"}
+            )
+        token = auth_header.split(" ")[1]
+        try:
+            payload = decode_access_token(token)
+            request.state.user_id = payload.get("sub")
+        except Exception as e:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=401,
+                content={"status": "error", "message": f"Agent Gateway: Authentication failed - {str(e)}"}
             )
             
     return await call_next(request)
@@ -85,12 +101,12 @@ async def agent_gateway_middleware(request: Request, call_next):
 # HELPER — extract user_id from request headers
 # ════════════════════════════════════════════════════
 
-def get_user_id(x_user_id: Optional[str] = Header(None)) -> str:
+def get_user_id(request: Request) -> str:
     """Agent Gateway: Enforces Zero-Trust Access Control (Hackathon Rubric)."""
-    user_id = x_user_id or ""
+    user_id = getattr(request.state, "user_id", "")
     if not user_id:
         from fastapi import HTTPException
-        raise HTTPException(status_code=401, detail="Agent Gateway: Missing X-User-Id for Zero-Trust routing.")
+        raise HTTPException(status_code=401, detail="Agent Gateway: Missing User ID for Zero-Trust routing.")
     return user_id
 
 
@@ -133,6 +149,7 @@ async def favicon():
 async def signup(
     username: str = Form(...),
     email: str = Form(...),
+    password: str = Form(...),
     hair_type: str = Form(""),
     porosity: str = Form(""),
     protein_sensitivity: str = Form(""),
@@ -142,6 +159,7 @@ async def signup(
     city: str = Form(""),
     latitude: float = Form(0),
     longitude: float = Form(0),
+    timezone: str = Form("UTC"),
     photo: Optional[UploadFile] = File(None),
 ):
     """
@@ -183,6 +201,7 @@ async def signup(
             "city": city,
             "latitude": latitude,
             "longitude": longitude,
+            "timezone": timezone,
         }
 
         # Upload optional profile photo to GCS
@@ -228,7 +247,7 @@ async def signup(
                 pass  # Photo analysis is optional — don't block signup
 
         # Create the user
-        user_data = create_user(username, email, hair_profile, location, photo_url)
+        user_data = create_user(username, email, hash_password(password), hair_profile, location, photo_url)
 
         # Trigger welcome email (this will trigger Google Auth popup locally the first time)
         try:
@@ -238,9 +257,12 @@ async def signup(
         except Exception as e:
             print(f"Error triggering welcome email: {e}")
 
+        token = create_access_token(username)
+
         return {
             "status": "success",
             "username": username,
+            "token": token,
             "message": f"Welcome to Curl Chemist, {username}!",
             "photo_analysis": hair_profile.get("photo_analysis"),
         }
@@ -261,13 +283,22 @@ async def login(request: Request):
         if not username:
             return {"status": "error", "message": "Username is required"}
 
+        password = body.get("password", "")
+        if not password:
+            return {"status": "error", "message": "Password is required"}
+
         user = get_user_by_username(username)
         if not user:
-            return {"status": "error", "message": "Username not found. Would you like to create a profile?"}
+            return {"status": "error", "message": "User doesn't exist."}
+        if not user.get("password_hash") or not verify_password(password, user.get("password_hash")):
+            return {"status": "error", "message": "Incorrect password."}
+
+        token = create_access_token(username)
 
         return {
             "status": "success",
             "username": username,
+            "token": token,
             "user": user,
         }
 
@@ -300,6 +331,7 @@ async def geocode_city(city: str):
                     "admin1": r.get("admin1", ""),  # State/province
                     "latitude": r.get("latitude"),
                     "longitude": r.get("longitude"),
+                    "timezone": r.get("timezone", "UTC"),
                 }
                 for r in results
             ]
@@ -317,16 +349,25 @@ async def geocode_city(city: str):
 # ════════════════════════════════════════════════════
 
 @app.get("/api/dashboard-data")
-async def get_dashboard_data(x_user_id: Optional[str] = Header(None)):
+async def get_dashboard_data(request: Request):
     """
     Returns ALL data the dashboard needs in one call.
     The dashboard JavaScript polls this every 5 seconds to stay updated.
     """
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return {"products": [], "conflicts": [], "routine": None, "profile": None,
                 "report": None, "pipeline_logs": [], "wash_history": [],
                 "alerts": [], "calendar_events": []}
+
+    logs = get_recent_pipeline_logs(user_id, limit=100)
+    
+    is_analyzing = False
+    for log in logs:
+        if log.get("pipeline") == "shelf_check":
+            if log.get("status") == "info":
+                is_analyzing = True
+            break
 
     return {
         "products": get_all_products(user_id),
@@ -334,43 +375,37 @@ async def get_dashboard_data(x_user_id: Optional[str] = Header(None)):
         "routine": get_latest_routine(user_id),
         "profile": get_user_profile(user_id),
         "report": get_latest_report(user_id),
-        "pipeline_logs": get_recent_pipeline_logs(user_id, limit=100),
+        "pipeline_logs": logs,
         "wash_history": get_recent_wash_history(user_id, days=30),
         "alerts": get_recent_alerts(user_id),
         "calendar_events": get_recent_calendar_events(user_id),
+        "is_analyzing": is_analyzing,
     }
 
-@app.post("/api/alerts/{alert_id}/acknowledge")
-async def acknowledge_alert(alert_id: str, x_user_id: Optional[str] = Header(None)):
-    user_id = x_user_id or ""
-    if not user_id:
-         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
-    
-    from firestore_helpers import get_user_ref
-    get_user_ref(user_id).collection("alerts").document(alert_id).update({"acknowledged": True})
-    return {"status": "success"}
-async def api_products(x_user_id: Optional[str] = Header(None)):
-    return get_all_products(x_user_id or "")
+
 
 
 @app.get("/api/conflicts")
-async def api_conflicts(x_user_id: Optional[str] = Header(None)):
-    return get_active_conflicts(x_user_id or "")
+async def api_conflicts(request: Request):
+    user_id = get_user_id(request)
+    return get_active_conflicts(user_id)
 
 
 @app.get("/api/routine")
-async def api_routine(x_user_id: Optional[str] = Header(None)):
-    return get_latest_routine(x_user_id or "") or {}
+async def api_routine(request: Request):
+    user_id = get_user_id(request)
+    return get_latest_routine(user_id) or {}
 
 
 @app.get("/api/logs")
-async def api_logs(x_user_id: Optional[str] = Header(None)):
-    return get_recent_pipeline_logs(x_user_id or "")
+async def api_logs(request: Request):
+    user_id = get_user_id(request)
+    return get_recent_pipeline_logs(user_id)
 
 
 @app.post("/api/alerts/{alert_id}/acknowledge")
-async def acknowledge_alert(alert_id: str, x_user_id: Optional[str] = Header(None)):
-    user_id = x_user_id or ""
+async def acknowledge_alert(alert_id: str, request: Request):
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
     
@@ -467,7 +502,7 @@ async def scan_manual(request: Request):
 # ════════════════════════════════════════════════════
 
 @app.post("/api/confirm-product")
-async def confirm_product(request: Request, x_user_id: Optional[str] = Header(None)):
+async def confirm_product(request: Request):
     """
     Save a scanned product to the shelf after user review.
 
@@ -477,7 +512,7 @@ async def confirm_product(request: Request, x_user_id: Optional[str] = Header(No
     2. Run N×N conflict analysis against the entire shelf
     3. Return any new conflicts found
     """
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -515,12 +550,12 @@ async def confirm_product(request: Request, x_user_id: Optional[str] = Header(No
 # ════════════════════════════════════════════════════
 
 @app.delete("/api/products/{product_id}")
-async def remove_product(product_id: str, x_user_id: Optional[str] = Header(None)):
+async def remove_product(product_id: str, request: Request):
     """
     Delete a product from the shelf.
     Re-evaluates conflicts for the remaining shelf.
     """
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -528,30 +563,11 @@ async def remove_product(product_id: str, x_user_id: Optional[str] = Header(None
         delete_product(user_id, product_id)
         log_pipeline_event(user_id, "system", "Removed a product from the shelf")
 
-        # Re-evaluate the shelf
-        all_products = get_all_products(user_id)
-        conflicts = await check_product_conflicts(all_products)
+        # Trigger Autonomous Agent in the background to handle Conflicts and Alerts
+        import asyncio
+        asyncio.create_task(run_shelf_check_pipeline(user_id))
 
-        # RACE CONDITION FIX: While Gemini was evaluating, user might have deleted more products.
-        # Fetch the shelf again to ensure we only save conflicts for products that STILL exist.
-        current_products = get_all_products(user_id)
-        current_product_ids = {p["id"] for p in current_products}
-
-        valid_conflicts = []
-        for c in conflicts:
-            a_id = c.get("product_a_id")
-            b_id = c.get("product_b_id")
-            if a_id and a_id not in current_product_ids:
-                continue
-            if b_id and b_id not in current_product_ids:
-                continue
-            valid_conflicts.append(c)
-
-        clear_all_conflicts(user_id)
-        for c in valid_conflicts:
-            save_conflict(user_id, c)
-
-        return {"status": "success", "message": "Product removed and shelf re-evaluated"}
+        return {"status": "success", "message": "Product removed and shelf re-evaluation started"}
     except Exception as e:
         return JSONResponse(
             {"status": "error", "message": f"Failed to delete product: {str(e)}"},
@@ -566,9 +582,9 @@ async def remove_product(product_id: str, x_user_id: Optional[str] = Header(None
 
 @app.post("/api/wash-day")
 async def log_wash_day(
+    request: Request,
     file: UploadFile = File(...),
     notes: str = Form(""),
-    x_user_id: Optional[str] = Header(None),
 ):
     """
     Log a wash day with a hair selfie.
@@ -580,7 +596,7 @@ async def log_wash_day(
     4. Compare with previous wash days (photo + metrics + climate)
     5. Save everything and return insights
     """
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -687,9 +703,9 @@ async def log_wash_day(
 # ════════════════════════════════════════════════════
 
 @app.post("/api/profile")
-async def update_profile(request: Request, x_user_id: Optional[str] = Header(None)):
+async def update_profile(request: Request):
     """Update the user's hair profile."""
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -705,9 +721,9 @@ async def update_profile(request: Request, x_user_id: Optional[str] = Header(Non
 
 
 @app.get("/api/profile")
-async def get_profile(x_user_id: Optional[str] = Header(None)):
+async def get_profile(request: Request):
     """Get the user's hair profile."""
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return {}
     profile = get_user_profile(user_id)
@@ -720,11 +736,11 @@ async def get_profile(x_user_id: Optional[str] = Header(None)):
 
 @app.get("/api/wash-history")
 async def api_wash_history(
+    request: Request,
     days: int = 90,
-    x_user_id: Optional[str] = Header(None),
 ):
     """Get wash history entries for the timeline/gallery."""
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return []
     return get_recent_wash_history(user_id, days=days)
@@ -738,14 +754,13 @@ async def api_wash_history(
 @app.post("/pipelines/nightly")
 async def trigger_nightly_pipeline(
     request: Request,
-    x_user_id: Optional[str] = Header(None),
 ):
     """
     Triggered by Cloud Scheduler every day at 9 PM Cairo time,
     or manually by a user from the dashboard.
     Generates tomorrow's routine.
     """
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -753,58 +768,18 @@ async def trigger_nightly_pipeline(
     return JSONResponse(jsonable_encoder(result))
 
 
-@app.post("/pipelines/shelf-reanalysis")
-async def trigger_shelf_reanalysis(
-    request: Request,
-    x_user_id: Optional[str] = Header(None),
-):
-    """
-    Triggered by Cloud Storage → Pub/Sub when a product photo is uploaded.
 
-    Pub/Sub sends the message as a JSON body with the file details.
-    We extract the bucket and filename to build the Cloud Storage URI.
-    """
-    user_id = x_user_id or ""
-    body = await request.json()
-
-    # Pub/Sub wraps the message in an envelope
-    if "message" in body:
-        # Decode the Pub/Sub message data
-        message_data = body["message"].get("data", "")
-        if message_data:
-            decoded = json.loads(base64.b64decode(message_data).decode())
-            bucket_name = decoded.get("bucket", PHOTOS_BUCKET)
-            name = decoded.get("name", "")
-            # Try to extract user_id from the file path (format: {user_id}/...)
-            if "/" in name and not user_id:
-                user_id = name.split("/")[0]
-        else:
-            return JSONResponse({"status": "error", "message": "No data in Pub/Sub message"}, status_code=400)
-    else:
-        # Direct API call (for testing)
-        bucket_name = body.get("bucket", PHOTOS_BUCKET)
-        name = body.get("name", "")
-
-    if not name:
-        return JSONResponse({"status": "error", "message": "No filename provided"}, status_code=400)
-    if not user_id:
-        return JSONResponse({"status": "error", "message": "No user_id"}, status_code=401)
-
-    image_uri = f"gs://{bucket_name}/{name}"
-    result = await run_shelf_reanalysis_pipeline(user_id, image_uri, name)
-    return JSONResponse(jsonable_encoder(result))
 
 
 @app.post("/pipelines/weekly-health")
 async def trigger_weekly_health(
     request: Request,
-    x_user_id: Optional[str] = Header(None),
 ):
     """
     Triggered by Cloud Scheduler every Sunday at 8 PM.
     Analyzes weekly hair health trends.
     """
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -819,10 +794,9 @@ async def trigger_weekly_health(
 @app.post("/api/advisor/chat")
 async def advisor_chat(
     request: Request,
-    x_user_id: Optional[str] = Header(None),
 ):
     """Handles chat messages to the Curl Advisor."""
-    user_id = x_user_id or ""
+    user_id = get_user_id(request)
     if not user_id:
         return JSONResponse({"status": "error", "message": "Not logged in"}, status_code=401)
 
@@ -835,8 +809,12 @@ async def advisor_chat(
             return JSONResponse({"status": "error", "message": "Message is required"}, status_code=400)
 
         # Gather user context
+        from firestore_helpers import get_user_location
+        profile = get_user_profile(user_id) or {}
+        profile["location"] = get_user_location(user_id) or {}
+        
         user_context = {
-            "profile": get_user_profile(user_id) or {},
+            "profile": profile,
             "products": get_all_products(user_id) or [],
             "wash_history": get_recent_wash_history(user_id, days=30) or [],
             "routine": get_latest_routine(user_id) or {},
@@ -844,7 +822,7 @@ async def advisor_chat(
 
         # Generate response
         reply = await generate_advisor_response(
-            username=user_id,
+            user_id=user_id,
             user_context=user_context,
             chat_history=chat_history,
             user_message=message
@@ -865,3 +843,57 @@ async def advisor_chat(
 @app.get("/health")
 async def health():
     return {"status": "healthy", "service": "curl-chemist", "version": "2.0.0"}
+
+@app.post("/pipelines/nightly/run-all")
+async def trigger_nightly_run_all(request: Request):
+    """Run nightly routine for all users concurrently."""
+    import asyncio
+    users = db.collection("users").stream()
+    
+    async def process_user(uid):
+        try:
+            res = await run_nightly_routine_pipeline(uid)
+            return {"user": uid, "status": "success", "result": res}
+        except Exception as e:
+            return {"user": uid, "status": "error", "message": str(e)}
+    tasks = [process_user(user_doc.id) for user_doc in users]
+    results = await asyncio.gather(*tasks)
+    
+    return JSONResponse({"status": "completed", "results": results})
+
+@app.post("/pubsub/push")
+async def pubsub_push_handler(request: Request):
+    """Event-driven intake triggered by Cloud Storage via Pub/Sub."""
+    import base64
+    import json
+    import asyncio
+    
+    try:
+        body = await request.json()
+        message = body.get("message", {})
+        data_b64 = message.get("data")
+        
+        if not data_b64:
+            return JSONResponse({"status": "error", "message": "No data in Pub/Sub message"}, status_code=400)
+            
+        # Decode base64 data
+        decoded_data = base64.b64decode(data_b64).decode("utf-8")
+        event_payload = json.loads(decoded_data)
+        
+        # Example: GCS Object create event payload contains 'name' (e.g., 'user123/wash_photos/image.jpg')
+        file_path = event_payload.get("name", "")
+        if not file_path:
+            return {"status": "ignored", "message": "No file path in event"}
+            
+        # Extract user_id from the GCS file path structure
+        user_id = file_path.split("/")[0]
+        
+        # Trigger the background autonomous agent workflow
+        asyncio.create_task(run_shelf_check_pipeline(user_id))
+        
+        return {"status": "success", "message": f"Triggered pipeline for {user_id}"}
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
