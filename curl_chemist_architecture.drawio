@@ -1,0 +1,184 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="f48c1c29-393e-4c99-ae56-248f54021035" name="Architecture">
+    <mxGraphModel dx="1460" dy="806" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="g_triggers" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="Triggers &amp; Inputs" vertex="1">
+          <mxGeometry height="120" width="720" x="60" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g_gateway" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="Security &amp; API Gateway" vertex="1">
+          <mxGeometry height="120" width="720" x="60" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="g_orchestration" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="Orchestration &amp; Tools" vertex="1">
+          <mxGeometry height="120" width="720" x="60" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="g_agents" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="Autonomous Agents Layer" vertex="1">
+          <mxGeometry height="120" width="1140" x="60" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="g_pipelines" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="Pipelines" vertex="1">
+          <mxGeometry height="120" width="380" x="820" y="352" as="geometry" />
+        </mxCell>
+        <mxCell id="g_data" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="Google Cloud Infrastructure" vertex="1">
+          <mxGeometry height="120" width="720" x="60" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="g_external" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;" value="External APIs &amp; Models" vertex="1">
+          <mxGeometry height="120" width="380" x="820" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="pubsub" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="Cloud Pub/Sub&#xa;(Event Trigger)" vertex="1">
+          <mxGeometry height="60" width="160" x="540" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="fastapi" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="FastAPI Gateway&#xa;(main.py / JWT / OIDC)" vertex="1">
+          <mxGeometry height="60" width="160" x="100" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="gemma" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="Gemma Model&#xa;(Prompt Injection Check)" vertex="1">
+          <mxGeometry height="60" width="160" x="540" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="orchestrator" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;strokeWidth=3;" value="True ReAct Orchestrator&#xa;(orchestrator.py)" vertex="1">
+          <mxGeometry height="60" width="200" x="320" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="chemist" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Chemist Agent&#xa;(Deterministic + Gen)" vertex="1">
+          <mxGeometry height="60" width="160" x="100" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="profiler" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Profiler &amp; Scanner" vertex="1">
+          <mxGeometry height="60" width="140" x="600" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="wash_comp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Wash Comparison Agent" vertex="1">
+          <mxGeometry height="60" width="160" x="760" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="health" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Weekly Health Agent" vertex="1">
+          <mxGeometry height="60" width="160" x="940" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="firestore" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" value="Firestore&#xa;(State &amp; Memory)" vertex="1">
+          <mxGeometry height="60" width="160" x="100" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="gcs" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" value="Cloud Storage&#xa;(Photos &amp; Scans)" vertex="1">
+          <mxGeometry height="60" width="160" x="320" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudrun" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" value="Cloud Run&#xa;(Serverless Execution)" vertex="1">
+          <mxGeometry height="60" width="160" x="540" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="gemini" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="Gemini 3.5 Flash" vertex="1">
+          <mxGeometry height="60" width="160" x="860" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="gcal" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="Google Calendar API" vertex="1">
+          <mxGeometry height="60" width="160" x="1040" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_user_app_fastapi_eeeead" edge="1" parent="1" source="user_app" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="fastapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_user_app_fastapi_eeeead_label" connectable="0" parent="edge_user_app_fastapi_eeeead" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="HTTP/JWT" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_scheduler_pubsub_b27c63" edge="1" parent="1" source="scheduler" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="pubsub">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_scheduler_pubsub_b27c63_label" connectable="0" parent="edge_scheduler_pubsub_b27c63" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Cron" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_pubsub_fastapi_6e9631" edge="1" parent="1" source="pubsub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="fastapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_pubsub_fastapi_6e9631_label" connectable="0" parent="edge_pubsub_fastapi_6e9631" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="OIDC Push" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_fastapi_sanitizer_5cdf6a" edge="1" parent="1" source="fastapi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="sanitizer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_fastapi_sanitizer_5cdf6a_label" connectable="0" parent="edge_fastapi_sanitizer_5cdf6a" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Validate &amp; Clean" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_sanitizer_gemma_4f703b" edge="1" parent="1" source="sanitizer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="gemma">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_sanitizer_gemma_4f703b_label" connectable="0" parent="edge_sanitizer_gemma_4f703b" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Guardrails" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_sanitizer_orchestrator_6cb3aa" edge="1" parent="1" source="sanitizer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_sanitizer_orchestrator_6cb3aa_label" connectable="0" parent="edge_sanitizer_orchestrator_6cb3aa" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Safe Prompt" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_fastapi_orchestrator_2e8515" edge="1" parent="1" source="fastapi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_nightly_orchestrator_2d14ed" edge="1" parent="1" source="nightly" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_shelf_analysis_orchestrator_959d57" edge="1" parent="1" source="shelf_analysis" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_registry_5afce5" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;" target="registry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_ext_actions_cf616f" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="ext_actions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_chemist_5e260f" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="chemist">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_advisor_c069c6" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="advisor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_climate_924562" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="climate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_profiler_3104f6" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="profiler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_wash_comp_320b00" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="wash_comp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_chemist_firestore_d49341" edge="1" parent="1" source="chemist" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="firestore">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_cloudrun_fastapi_c494c6" edge="1" parent="1" source="cloudrun" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" target="fastapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_cloudrun_fastapi_c494c6_label" connectable="0" parent="edge_cloudrun_fastapi_c494c6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Hosts" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ext_actions_gcal_a39735" edge="1" parent="1" source="ext_actions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="gcal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_gemini_edf291" edge="1" parent="1" source="orchestrator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="gemini">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orchestrator_gemini_edf291_label" connectable="0" parent="edge_orchestrator_gemini_edf291" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="LLM Calls" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ext_actions" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="External Actions&#xa;(Google API Services)" vertex="1">
+          <mxGeometry height="60" width="160" x="580" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="user_app" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Web Client / User App" vertex="1">
+          <mxGeometry height="60" width="160" x="100" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="scheduler" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="Cloud Scheduler&#xa;(Nightly Routine)" vertex="1">
+          <mxGeometry height="60" width="160" x="320" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sanitizer" parent="1" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="Input Sanitizer&#xa;(Model Armor)" vertex="1">
+          <mxGeometry height="60" width="160" x="320" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="registry" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Tool Registry&#xa;(tool_registry.py)" vertex="1">
+          <mxGeometry height="60" width="160" x="100" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="nightly" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Nightly Routine" vertex="1">
+          <mxGeometry height="60" width="140" x="860" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="shelf_analysis" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Shelf Re-analysis" vertex="1">
+          <mxGeometry height="60" width="140" x="1020" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="climate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Climate Agent" vertex="1">
+          <mxGeometry height="60" width="140" x="440" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="advisor" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Advisor Agent" vertex="1">
+          <mxGeometry height="60" width="140" x="280" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_profiler_gcs_c16494" edge="1" parent="1" source="profiler" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="gcs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

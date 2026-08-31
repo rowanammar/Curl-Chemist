@@ -2,7 +2,7 @@
 
 **An Autonomous Hair Care Agent that goes beyond the chat loop to build routines, detect chemical conflicts, and manage your schedule.**
 
-![Architecture Diagram](./architecture_revised.png)
+![Architecture Diagram](./curl_chemist_architecture.png.png)
 
 ## 🏆 Submission for the #AllThingsAgentic Hackathon
 **Category:** Taskmaster
