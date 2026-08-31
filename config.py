@@ -24,7 +24,7 @@ GCP_REGION = os.getenv("GCP_REGION", "europe-west2")
 # Go to: https://console.cloud.google.com/vertex-ai/model-garden
 # Search for "Gemini" and find the exact model ID string.
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-2-9b-it")
+GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-4-26b-a4b-it")
 GEMMA_REGION = os.getenv("GEMMA_REGION", GCP_REGION)
 
 # Force Gemini to use Vertex AI by ignoring any API key

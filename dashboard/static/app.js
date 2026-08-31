@@ -1095,7 +1095,7 @@ function renderCalendarEvents(events) {
         <div class="calendar-event-title">${e.title}</div>
         <div class="calendar-event-time">${new Date(e.start_time).toLocaleString()} (${e.duration_minutes} min)</div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="downloadIcs('${encodeURIComponent(e.ics_content)}', 'wash_day.ics')">Download .ics</button>
+      <button class="btn btn-primary btn-sm" onclick="downloadIcs('${encodeURIComponent(e.ics_content).replace(/'/g, "%27")}', 'wash_day.ics')">Download .ics</button>
     </div>
   `).join('');
 }

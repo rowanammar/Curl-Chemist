@@ -111,6 +111,20 @@ END:VCALENDAR"""
             start_time=event_date.isoformat(),
             end_time=event_end.isoformat(),
         )
+        
+        if api_res.get("status") == "error":
+            # Google API failed (e.g. no credentials)
+            log_pipeline_event(
+                user_id, "external_action",
+                f"[CALENDAR] Failed to schedule '{event_title}' via Google API: {api_res.get('message', 'Unknown error')}",
+                status="error",
+            )
+            return {
+                "status": "failed",
+                "event_id": event_uid,
+                "message": f"Saved locally but Google API failed: {api_res.get('message')}"
+            }
+            
     except Exception as e:
         log_pipeline_event(
             user_id, "external_action",
@@ -212,6 +226,17 @@ def dispatch_shopping_alert(
     subject = f"🚨 Curl Chemist Alert: {alert_title}"
     try:
         api_res = send_gmail(user_email, subject, email_html)
+        if api_res.get("status") == "error":
+            log_pipeline_event(
+                user_id, "external_action",
+                f"[SHOPPING ALERT] Failed to dispatch email to {user_email}: {api_res.get('message')}",
+                status="error",
+            )
+            return {
+                "status": "failed",
+                "alert_id": alert_id,
+                "message": f"Saved locally but Gmail API failed: {api_res.get('message')}",
+            }
     except Exception as e:
         log_pipeline_event(
             user_id, "external_action",

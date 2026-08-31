@@ -23,8 +23,17 @@ def get_credentials():
     env_creds = os.environ.get("GOOGLE_OAUTH_CREDENTIALS")
     
     if env_token:
-        token_info = json.loads(env_token)
-        creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+        try:
+            token_info = json.loads(env_token)
+            creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+        except Exception as e:
+            print(f"WARNING: Failed to load GOOGLE_OAUTH_TOKEN: {e}")
+            try:
+                import ast
+                token_info = ast.literal_eval(env_token)
+                creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+            except Exception as e2:
+                print(f"WARNING: Fallback ast loading failed: {e2}")
     elif os.path.exists('token.json'):
         # 2. Fallback to local file (Development)
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
